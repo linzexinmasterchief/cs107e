@@ -1,0 +1,9 @@
+Hi! Replace EVERYTHING in this file with one of the following choices depending
+on your preference and availability for lab section. 
+
+Your submitted file should contain only and exactly one of these lines:
+
+Tuesday
+Tuesday, can't make Wednesday
+Wednesday
+Wednesday, can't make Tuesday
