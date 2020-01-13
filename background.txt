@@ -1,0 +1,7 @@
+1. 0x0f = 00001111 and 0xff 11111111 so 0x0f|0xff=11111111=0xff. 
+0xff << 24 = 0xff000000
+2. 2000mA
+3. I ran cd /etc to get to the correct directory and ll to view the the contents
+of that directory. My .bashrc files aliases ll to ls -la on startup. The apt file 
+looked like it contained 4096 bytes and the entire /etc directory housed 292 
+items.
