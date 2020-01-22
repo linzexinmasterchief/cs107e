@@ -19,7 +19,7 @@ orr r1, r1, #(1<<9)
 str r1, [r0]
 
 // set bit 20 and 21
-mov r1, #(1111<<20)
+mov r1, #(0b1010<<20)
 
 loop: 
 
