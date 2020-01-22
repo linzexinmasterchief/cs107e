@@ -10,17 +10,20 @@
 
 .equ DELAY, 0x3F0000
 
-// configure GPIO 20 for output
+// configure GPIO 20 and 21 for output
 ldr r0, FSEL2
 mov r1, #1
+orr r1, r1, #(1<<3)
+orr r1, r1, #(1<<6)
+orr r1, r1, #(1<<9)
 str r1, [r0]
 
-// set bit 20
-mov r1, #(1<<20)
+// set bit 20 and 21
+mov r1, #(1111<<20)
 
 loop: 
 
-// set GPIO 20 high
+// set GPIO 20 and 21 high
 ldr r0, SET0
 str r1, [r0] 
 
@@ -30,7 +33,7 @@ wait1:
     subs r2, #1
     bne wait1
 
-// set GPIO 20 low
+// set GPIO 20 and 21 low
 ldr r0, CLR0
 str r1, [r0] 
 
