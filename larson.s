@@ -8,29 +8,31 @@
  * Make sure to use GPIO pins 20-23 (or 20-27) for your scanner.
  */
 
-.equ DELAY, 0x3F0000
+.equ DELAY, 0x3F0000 // duration of pulse
 .equ NUMJMPS, 3 // the number of LEDS minus 1
 
-// configure GPIO 20-23 for output
+// configure GPIO 20-27 for output
 ldr r0, FSEL2
 mov r1, #1 // output for 20
 orr r1, r1, #(1<<3)
 orr r1, r1, #(1<<6)
 orr r1, r1, #(1<<9) // output for 23
+// orr r1, r1, #(1<<12)
+// orr r1, r1, #(1<<15)
+// orr r1, r1, #(1<<18)
+// orr r1, r1, #(1<<22) // output for 27
 str r1, [r0] // set value in register
 
 // set bit 20 and 21
 mov r1, #(0b0001<<20)
 
 cycle:
-
 	// decide led shift direction
 	cmp r1, #(0b0001<<20)
 	mov r3, #NUMJMPS
 	beq left
 
 	right:
-
 		// load new scanner pattern
 		lsr r1, r1, #1 
 		ldr r0, SET0
@@ -51,10 +53,9 @@ cycle:
 	b cycle
 
 	left:
-
 		// load new scanner pattern
 		lsl r1, r1, #1 
-        ldr r0, SET0
+		ldr r0, SET0
 		str r1, [r0] 
 
 		// delay
