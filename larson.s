@@ -9,7 +9,7 @@
  */
 
 .equ DELAY, 0x3F0000
-.equ NUMJMPS, 4 // the number of LEDS minus 1
+.equ NUMJMPS, 3 // the number of LEDS minus 1
 
 // configure GPIO 20-23 for output
 ldr r0, FSEL2
@@ -33,7 +33,6 @@ cycle:
 
 		// load new scanner pattern
 		lsr r1, r1, #1 
-		//mov r1, #(0001<<20)
 		ldr r0, SET0
 		str r1, [r0] 
 
@@ -55,7 +54,6 @@ cycle:
 
 		// load new scanner pattern
 		lsl r1, r1, #1 
-		//mov r1, #(1000<<20)
         ldr r0, SET0
 		str r1, [r0] 
 
