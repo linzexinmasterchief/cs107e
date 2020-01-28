@@ -27,6 +27,9 @@ volatile unsigned int values[16] = {
 	0b01110001,
 };
 
+/**
+* Establishes correspondence between segments and GPIO pins
+*/
 enum segments{
 	A = GPIO_PIN20,
 	B = GPIO_PIN21,
@@ -37,6 +40,9 @@ enum segments{
 	G = GPIO_PIN26
 };
 
+/**
+* Establishes correspondence between dgits and GPIO pins
+*/
 enum digits{
 	FIRST = GPIO_PIN10,
 	SECOND = GPIO_PIN11,
@@ -44,11 +50,14 @@ enum digits{
 	FOURTH = GPIO_PIN13
 };
 
-unsigned int DELAY = 2500;
-unsigned int INTERVAL = 1000000;
+unsigned int DELAY = 2500; // refresh rate
+unsigned int INTERVAL = 1000000; // length of "second"
 
-int BUTTON = GPIO_PIN2;
+int BUTTON = GPIO_PIN2; // button to start timer
 
+/**
+* Sets all segment pins as output and the start button as input
+*/
 void setup_pins(){
 	for(volatile unsigned int i=A; i <= G; i++){
 		gpio_set_output(i);
@@ -60,6 +69,19 @@ void setup_pins(){
 	gpio_set_input(BUTTON);
 }
 
+/**
+* Writes the starting pattern to the display
+*/
+void init_pins(){
+	for(int i=FIRST; i <= FOURTH; i++){
+		gpio_write(i, 1);
+		gpio_write(G, 1);
+	}
+}
+
+/**
+* Writes a hexadecimal value (0-F) to a specific digit
+*/
 void write_digit(unsigned int digit, unsigned int value){
 	gpio_write(digit, 1);
 
@@ -69,45 +91,55 @@ void write_digit(unsigned int digit, unsigned int value){
 	}
 }
 
-void init_pins(){
-	for(int i=FIRST; i <= FOURTH; i++){
-		gpio_write(i, 1);
-		gpio_write(G, 1);
-	}
+/**
+* Runs a display with a refresh rate of DELAY incrementing at a rate of INTERVAL
+*/
+void run(){
+	int curr_sec = 0; // current second value being displayed
+	int curr_min = 0; // current minute value being displayed
+	volatile unsigned int curr_tick = timer_get_ticks(); // time at last update
+
+	while(1){
+		//Update each indivdual digit
+		write_digit(FIRST, values[(curr_min / 10) % 10]);
+	    timer_delay_us(DELAY);
+	    gpio_write(FIRST, 0);
+
+		write_digit(SECOND, values[curr_min  % 10]);
+		timer_delay_us(DELAY);
+		gpio_write(SECOND, 0);
+
+		write_digit(THIRD, values[(curr_sec / 10)  % 10]);
+		timer_delay_us(DELAY);
+		gpio_write(THIRD, 0);
+
+		write_digit(FOURTH, values[curr_sec % 10]);
+		timer_delay_us(DELAY);
+		gpio_write(FOURTH, 0);
+	
+		// Update displayed time if interval has elapsed
+		if((timer_get_ticks() - curr_tick) >= INTERVAL){
+			curr_sec += 1;
+			// extra logic to display seconds/minutes
+			if(curr_sec >= 60){
+				curr_sec = 0;
+				curr_min += 1;
+			}
+
+			curr_tick = timer_get_ticks();
+		}
+	}	
 }
 
 void main(void)
 {
+	// Puts the display in standby
 	setup_pins();
 	init_pins();
 
+	// Waits until the button is pressed
 	while(gpio_read(BUTTON)) { /* spin */ }
 	
-	int curr_num = 0;
-	unsigned int curr_tick = timer_get_ticks();	
-	
-	while(1){
-		write_digit(FOURTH, values[ curr_num         % 10]);
-	    timer_delay_us(DELAY);
-	    gpio_write(FIRST + 3, 0);
-
-		write_digit(THIRD, values[(curr_num / 10)   % 10]);
-		timer_delay_us(DELAY);
-		gpio_write(FIRST + 2, 0);
-
-		write_digit(SECOND, values[(curr_num / 100)  % 10]);
-		timer_delay_us(DELAY);
-		gpio_write(FIRST + 1, 0);
-
-		write_digit(FIRST, values[(curr_num / 1000) % 10]);
-		timer_delay_us(DELAY);
-		gpio_write(FIRST + 0, 0);
-	
-		if(timer_get_ticks() - curr_tick > INTERVAL){
-			curr_num = (curr_num + 1) % 10000;
-			curr_tick = timer_get_ticks();
-		}
-  
-	}	
+	run();
 
 }
