@@ -10,7 +10,7 @@
 
 volatile unsigned int values[16] = {
 	0b00111111, 
-	0b00110000,
+	0b00000110,
 	0b01011011,
 	0b01001111,
 	0b01100110,
@@ -44,6 +44,9 @@ enum digits{
 	FOURTH = GPIO_PIN13
 };
 
+unsigned int DELAY = 2500;
+unsigned int INTERVAL = 1000000;
+
 void setup_pins(){
 	for(volatile unsigned int i=A; i <= G; i++){
 		gpio_set_output(i);
@@ -54,17 +57,11 @@ void setup_pins(){
 }
 
 void write_digit(unsigned int digit, unsigned int value){
-	gpio_write(FIRST + digit, 1);
+	gpio_write(digit, 1);
 
 	volatile unsigned int seg_counter = A;	
-	while(value){
-		if(value & 1) {
-			gpio_write(seg_counter, 1);
-		} else{
-			gpio_write(seg_counter, 0);
-		}
-
-		seg_counter++;
+	for(int seg_counter=A; seg_counter <= G; seg_counter++){
+		gpio_write(seg_counter, value & 1);
 		value >>= 1;
 	}
 }
@@ -72,8 +69,30 @@ void write_digit(unsigned int digit, unsigned int value){
 void main(void)
 {
 	setup_pins();
-	// gpio_write(FIRST, 1);
-	// gpio_write(B, 1);
-	// gpio_write(C, 1);
-	write_digit(1, values[15]);
+	int curr_num = 0;
+	unsigned int curr_tick = timer_get_ticks(); 	
+
+	while(1){
+		if(timer_get_ticks() - curr_tick > INTERVAL){
+			curr_num = (curr_num + 1) % 10000;
+			curr_tick = timer_get_ticks();
+		}
+  
+		write_digit(FOURTH, values[ curr_num         % 10]);
+	    timer_delay_us(DELAY);
+	    gpio_write(FIRST + 3, 0);
+
+		write_digit(THIRD, values[(curr_num / 10)   % 10]);
+		timer_delay_us(DELAY);
+		gpio_write(FIRST + 2, 0);
+
+		write_digit(SECOND, values[(curr_num / 100)  % 10]);
+		timer_delay_us(DELAY);
+		gpio_write(FIRST + 1, 0);
+
+		write_digit(FIRST, values[(curr_num / 1000) % 10]);
+		timer_delay_us(DELAY);
+		gpio_write(FIRST + 0, 0);
+	}	
+
 }
