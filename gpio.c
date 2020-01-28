@@ -31,10 +31,16 @@ void gpio_set_function(unsigned int pin, unsigned int function) {
 	if(pin < GPIO_PIN_FIRST || pin > GPIO_PIN_LAST) return; // valid pin
   	if((function & 000) != 0) return; // valid function
 	
-	int num_register = pin / 10;
-    unsigned volatile int *currReg = FSEL0 + num_register; // correct function register depends on MSB
-    int fcn = function << (3 * (pin % 10)); // 3 bits per function register
-	*currReg = fcn;
+    unsigned volatile int *curr_reg = FSEL0 + pin/10; // correct function register depends on MSB
+	
+	// Set correct slot in register to 000
+	int clear = 111 << (3 * (pin % 10));
+	clear = ~clear;
+	*curr_reg &= clear;
+	
+ 	// Replace 000 with the correct function assignment 
+    int fcn = function << (3 * (pin % 10));
+	*curr_reg |= fcn;
 }
 
 unsigned int gpio_get_function(unsigned int pin) {    
