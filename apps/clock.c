@@ -52,8 +52,10 @@ enum digits{
 
 unsigned int DELAY = 2500; // refresh rate
 unsigned int INTERVAL = 1000000; // length of "second"
+unsigned int PRESS_RESOLUTION = 500; // max length of a button press
 
-int BUTTON = GPIO_PIN2; // button to start timer
+int BUTTON = GPIO_PIN2; // button to set time
+int BUTTON2 = GPIO_PIN3; // button to start/stop timer
 
 /**
 * Sets all segment pins as output and the start button as input
@@ -67,6 +69,7 @@ void setup_pins(){
 	}
 
 	gpio_set_input(BUTTON);
+	gpio_set_input(BUTTON2);
 }
 
 /**
@@ -94,9 +97,9 @@ void write_digit(unsigned int digit, unsigned int value){
 /**
 * Runs a display with a refresh rate of DELAY incrementing at a rate of INTERVAL
 */
-void run(){
-	int curr_sec = 0; // current second value being displayed
-	int curr_min = 0; // current minute value being displayed
+void run(int start_sec, int start_min){
+	int curr_sec = start_sec; // current second value being displayed
+	int curr_min = start_min; // current minute value being displayed
 	volatile unsigned int curr_tick = timer_get_ticks(); // time at last update
 
 	while(1){
@@ -128,7 +131,28 @@ void run(){
 
 			curr_tick = timer_get_ticks();
 		}
+
+		if(!gpio_read(BUTTON)){
+			timer_delay_us(PRESS_RESOLUTION);
+			if(!gpio_read(BUTTON)){
+				continue;
+			}
+		}
 	}	
+
+	int new_time = 0;
+	while(1){
+		timer_delay_ms(PRESS_RESOLUTION);
+		if(!gpio_read(BUTTON2)){
+			timer_delay_us(PRESS_RESOLUTION);
+			if(!gpio_read(BUTTON2)){ new_time++; }
+		}
+		if(!gpio_read(BUTTON)){
+			timer_delay_us(PRESS_RESOLUTION);
+			if(!gpio_read(BUTTON2)){ continue; }
+		}	
+	}
+	run(new_time % 60, new_time / 60);
 }
 
 void main(void)
@@ -140,6 +164,6 @@ void main(void)
 	// Waits until the button is pressed
 	while(gpio_read(BUTTON)) { /* spin */ }
 	
-	run();
+	run(0, 0); // start running at 00:00
 
 }
