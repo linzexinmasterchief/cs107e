@@ -2,14 +2,22 @@
 
 void *memset(void *s, int c, size_t n)
 {
-    /* TODO: Your code here */
-    return NULL;
+	s = (char *)s;
+	c = (unsigned char) c;
+	for(int i = 0; i < n; i++){
+		s[i] = c;
+	}
+    return s;
 }
 
 void *memcpy(void *dst, const void *src, size_t n)
 {
-    /* TODO: Your code here */
-    return NULL;
+	dst = (char *)dst;
+	src = (char *)src;
+	for(int i = 0; i < n; i++){
+		dst[i] = src[i];
+	}
+	return dst;
 }
 
 size_t strlen(const char *s)
@@ -24,8 +32,13 @@ size_t strlen(const char *s)
 
 int strcmp(const char *s1, const char *s2)
 {
-    /* TODO: Your code here */
-    return 0;
+	int n = 0;
+	while(s1[n] != '\0'){
+		if((s1[n] - s2[n]) != 0) 
+			return s1[n] - s2[n];
+		n++;
+	}
+    return s2[n] - s1[n];
 }
 
 size_t strlcat(char *dst, const char *src, size_t maxsize)
