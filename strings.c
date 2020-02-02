@@ -1,7 +1,13 @@
 #include "strings.h"
 
+// Defining boolean constants since we don't have stdbool.h
 const int TRUE = 1;
 const int FALSE = 0;
+/* 
+* Constants refer to the offset between numbers and characters in the ASCII encoding scheme
+* ie: 'a' = 97 so 'a' - LET_OFFSET = 10 
+* ie: '0' = 48 so '0' - NUM_OFFSET = 0 
+*/
 const int NUM_OFFSET = 48;
 const int LET_OFFSET = 87;
  
@@ -49,20 +55,30 @@ int strcmp(const char *s1, const char *s2)
 size_t strlcat(char *dst, const char *src, size_t maxsize)
 {
 	int dst_len = strlen(dst);
-	int cp_max = maxsize - dst_len - 1;
-	memcpy(dst + dst_len, src, cp_max);
-	dst[maxsize - 1] = '\0';
+	int cp_max = maxsize - dst_len - 1; // max number of appendable characters
+	memcpy(dst + dst_len, src, cp_max); // starts copying at '\0' of dst
+	dst[maxsize - 1] = '\0'; // terminates the new string
     return 0;
 }
 
+/*
+* Function returns whether a given string should be interpreted as a hexadecimal value
+*/
 int is_hex(const char *str){
 	return str[0] == '0' && str[1] == 'x' ? TRUE : FALSE;
 }
 
+/*
+* Function returns whether character is a digit
+*/
 int is_dig(char c){
 	return '0' <= c && c <= '9' ? TRUE : FALSE;
 }
 
+/*
+* Function returns whether character is a valid hexadecimal letter
+* NOTE: We only accept lowercase letters 
+*/
 int is_let(char c){
 	return 'a' <= c && c <= 'f' ? TRUE : FALSE;
 }
@@ -71,9 +87,10 @@ unsigned int strtonum(const char *str, const char **endptr)
 {
 	*endptr = str;
 	int base;
-	const char *curr_ptr = str;	
+
+	// set up the function to process either hex or dec string
 	if(is_hex(str)){
-		curr_ptr += 2;
+		*endptr += 2;
 		base = 16;
 	} else{
 		base = 10;
@@ -81,14 +98,14 @@ unsigned int strtonum(const char *str, const char **endptr)
 
 	int num = 0;
 	int curr_dig;
-	while(*curr_ptr != '\0' && (is_dig(*curr_ptr) || is_let(*curr_ptr))){
-		if(is_let(*curr_ptr) && base == 10) return num;
+	while(**endptr != '\0' && (is_dig(**endptr) || is_let(**endptr))){
+		if(is_let(**endptr) && base == 10) return num; // extra care needed for base 10
 
-		curr_dig = *curr_ptr;
-		curr_dig -= is_let(curr_dig) ? LET_OFFSET : NUM_OFFSET;
+		curr_dig = **endptr;
+		curr_dig -= is_let(curr_dig) ? LET_OFFSET : NUM_OFFSET; // translate char --> int value
 		num = num * base + curr_dig;
 
-		curr_ptr += 1;
+		*endptr += 1;
 	}	
     return num;
 }
