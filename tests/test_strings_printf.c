@@ -127,8 +127,8 @@ void main(void)
     test_strcmp();
     test_strlcat();
     test_strtonum();
-    test_to_base();
-    test_snprintf();
+//    test_to_base();
+//    test_snprintf();
 
     uart_putstring("Successfully finished executing main() in tests/test_strings_printf.c\n");
     uart_putchar(EOT);
