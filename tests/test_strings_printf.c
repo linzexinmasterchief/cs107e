@@ -12,6 +12,24 @@ static void test_memset(void)
 
     memset(&numB, 0xef, sizeof(int));
     assert(numA == numB);
+	
+	char str[] = "107e gods please be merciful";
+
+	memset(str, 'x', 0 * sizeof(char));
+	assert(strcmp(str, "107e gods please be merciful") == 0);
+
+	memset(str, '.', 10 * sizeof(char));
+	assert(strcmp(str, "..........please be merciful") == 0);
+
+	memset(str, 'x', strlen(str));
+	for(int i = 0; i < strlen(str); i++)
+		assert(str[i] == 'x');
+	
+	memset(str + 5, 'o', 5 * sizeof(char));
+	assert(str[4] == 'x');
+	for(int i = 0; i < 5; i++)
+		assert(str[i + 5] == 'o');
+	assert(str[10] == 'x');
 }
 
 static void test_memcpy(void)
@@ -21,6 +39,17 @@ static void test_memcpy(void)
 
     memcpy(&numB, &numA, sizeof(int));
     assert(numA == numB);
+
+	char *strA = "HATE";
+	char *strB = "LOVE";
+	memcpy(strA, strB, strlen(strA));
+	assert(strcmp(strA, strB) == 0);
+
+	char str[] = "..........";
+	memcpy(strA, str, sizeof(str));
+	for(int i = 0; i < 10; i++){
+		assert(*(strA + i) == '.');
+	}
 }
 
 static void test_strlen(void)
@@ -59,17 +88,29 @@ static void test_strtonum(void)
     val = strtonum(input, &rest);
     assert(val == 107);
     assert(rest == &input[3]);
+
+	val = strtonum("0x013", NULL);
+	assert(val == 19);
+
+	input = "0x107rocks...wait that's not right";
+	val = strtonum(input, &rest);
+	assert(val == 263);
+	assert(rest == &input[5]);
 }
 
 static void test_to_base(void)
 {
+	char simp[4];
+	memset(simp, 1234, sizeof(simp)
+	assert(strcmp(simp, "1234") == 0);
+
     char buf[5];
     size_t bufsize = sizeof(buf);
 
     memset(buf, 0x77, bufsize); // init contents with known value
 
     int n = signed_to_base(buf, bufsize, -9999, 10, 6);
-    assert(strcmp(buf, "-099") == 0)
+    assert(strcmp(buf, "-099") == 0);
     assert(n == 6);
 }
 
