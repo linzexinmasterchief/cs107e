@@ -100,9 +100,17 @@ static void test_strtonum(void)
 
 static void test_to_base(void)
 {
-	char simp[4];
-	memset(simp, 1234, sizeof(simp)
-	assert(strcmp(simp, "1234") == 0);
+	char simple[5];
+	unsigned_to_base(simple, sizeof(simple), 1234, 10, 0);
+	assert(strcmp(simple, "1234") == 0);
+
+	char with_width[7];
+	unsigned_to_base(with_width, sizeof(with_width), 1234, 10, 6);
+	assert(strcmp(with_width, "001234") == 0);
+	
+	char hex_num[5];
+	unsigned_to_base(hex_num, sizeof(hex_num), 35, 16, 4);
+	assert(strcmp(hex_num, "0023") == 0);
 
     char buf[5];
     size_t bufsize = sizeof(buf);
@@ -125,33 +133,36 @@ static void test_snprintf(void)
     snprintf(buf, bufsize, "Hello, world!");
     assert(strcmp(buf, "Hello, world!") == 0);
 
+	// Ramp it up a bit...
+	snprintf(buf, bufsize, "%c%c = 100%% fresh", 'C', 'S');
+	assert(strcmp(buf, "CS = 100% fresh"));
     // Decimal
-    snprintf(buf, bufsize, "%d", 45);
-    assert(strcmp(buf, "45") == 0);
+  //  snprintf(buf, bufsize, "%d", 45);
+  //  assert(strcmp(buf, "45") == 0);
 
-    // Hexadecimal
-    snprintf(buf, bufsize, "%04x", 0xef);
-    assert(strcmp(buf, "00ef") == 0);
+  //  // Hexadecimal
+  //  snprintf(buf, bufsize, "%04x", 0xef);
+  //  assert(strcmp(buf, "00ef") == 0);
 
-    // Pointer
-    snprintf(buf, bufsize, "%p", (void *) 0x20200004);
-    assert(strcmp(buf, "0x20200004") == 0);
+  //  // Pointer
+  //  snprintf(buf, bufsize, "%p", (void *) 0x20200004);
+  //  assert(strcmp(buf, "0x20200004") == 0);
 
-    // Character
-    snprintf(buf, bufsize, "%c", 'A');
-    assert(strcmp(buf, "A") == 0);
+  //  // Character
+  //  snprintf(buf, bufsize, "%c", 'A');
+  //  assert(strcmp(buf, "A") == 0);
 
-    // String
-    snprintf(buf, bufsize, "%s", "binky");
-    assert(strcmp(buf, "binky") == 0);
+  //  // String
+  //  snprintf(buf, bufsize, "%s", "binky");
+  //  assert(strcmp(buf, "binky") == 0);
 
-    // Format string with intermixed codes
-    snprintf(buf, bufsize, "CS%d%c!", 107, 'e');
-    assert(strcmp(buf, "CS107e!") == 0);
+  //  // Format string with intermixed codes
+  //  snprintf(buf, bufsize, "CS%d%c!", 107, 'e');
+  //  assert(strcmp(buf, "CS107e!") == 0);
 
-    // Test return value
-    assert(snprintf(buf, bufsize, "Hello") == 5);
-    assert(snprintf(buf, 2, "Hello") == 5);
+  //  // Test return value
+  //  assert(snprintf(buf, bufsize, "Hello") == 5);
+  //  assert(snprintf(buf, 2, "Hello") == 5);
 }
 
 
@@ -168,8 +179,8 @@ void main(void)
     test_strcmp();
     test_strlcat();
     test_strtonum();
-//    test_to_base();
-//    test_snprintf();
+    test_to_base();
+    test_snprintf();
 
     uart_putstring("Successfully finished executing main() in tests/test_strings_printf.c\n");
     uart_putchar(EOT);

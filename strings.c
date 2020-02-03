@@ -1,8 +1,8 @@
 #include "strings.h"
 
 // Defining boolean constants since we don't have stdbool.h
-const int TRUE = 1;
-const int FALSE = 0;
+#define TRUE 1
+#define FALSE 0
 /* 
 * Constants refer to the offset between numbers and characters in the ASCII encoding scheme
 * ie: 'a' = 97 so 'a' - LET_OFFSET = 10 
