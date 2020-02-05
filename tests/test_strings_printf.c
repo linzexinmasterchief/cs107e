@@ -148,10 +148,10 @@ static void test_snprintf(void)
 	assert(strcmp(buf, "test be") == 0);
 
     // Hexadecimal
- //   snprintf(buf, bufsize, "%04x", 0xef);
- //   assert(strcmp(buf, "00ef") == 0);
+    snprintf(buf, bufsize, "%04x", 0xef);
+    assert(strcmp(buf, "00ef") == 0);
 
-  //  // Pointer
+    // Pointer
     snprintf(buf, bufsize, "%p", (void *) 0x20200004);
     assert(strcmp(buf, "0x20200004") == 0);
 

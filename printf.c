@@ -1,6 +1,6 @@
 #include "printf.h"
 #include "printf_internal.h"
-#include "string.h"
+#include "strings.h"
 #include <stdarg.h>
 
 #define MAX_OUTPUT_LEN 1024
@@ -84,6 +84,11 @@ int snprintf(char *buf, size_t bufsize, const char *format, ...)
 				str_len += signed_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 10, 0); 
 			} else if(code == 'x'){
 				str_len += unsigned_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 16, 0); 
+			} else if(code == '0'){
+				const char *temp;
+				unsigned int width = strtonum(format + i + 1, &temp);
+				i += temp - format;
+				code = format[i];			
 			} else if(code == 'p'){
 				buf[str_len++] = '0';
 				buf[str_len++] = 'x';
