@@ -46,9 +46,7 @@ int signed_to_base(char *buf, size_t bufsize, int val, int base, int min_width)
 	// only keep what fits in the buffer
 	int j = 0;
 	for(;j < bufsize - 1; j++){
-		if(j == num_len){
-			break;
-		}
+		if(j == num_len) break;
 		buf[j] = num[num_len - j - 1];
 	}
 	buf[j] = '\0';
@@ -69,33 +67,47 @@ int snprintf(char *buf, size_t bufsize, const char *format, ...)
 
 	va_list ap;
 	va_start(ap, format);
+	unsigned int width = 0;
 	for(int i = 0; i < strlen(format); i++){
 		if(format[i] == '%'){
-			char code = format[i + 1];
-			if(code == '%'){
-				buf[str_len] = '%';
-				str_len++;
-			} else if(code == 'c'){
-				buf[str_len] = (char) va_arg(ap, int);
-				str_len++;
-			} else if(code == 's'){
-				str_len += strlcat(buf, va_arg(ap, char *), bufsize - str_len);
-			} else if(code == 'd'){
-				str_len += signed_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 10, 0); 
-			} else if(code == 'x'){
-				str_len += unsigned_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 16, 0); 
-			} else if(code == '0'){
-				const char *temp;
-				unsigned int width = strtonum(format + i + 1, &temp);
-				i += temp - format;
-				code = format[i];			
-			} else if(code == 'p'){
-				buf[str_len++] = '0';
-				buf[str_len++] = 'x';
-				str_len += unsigned_to_base(buf + str_len, bufsize - str_len, (va_arg(ap, unsigned int)), 16, 0);
+			switch (format[i + 1]) {
+				case '%':
+					buf[str_len] = '%';
+					str_len++;
+					break;
+				case 'c':
+					buf[str_len] = (char) va_arg(ap, int);
+					str_len++;
+					break;
+				case 's':
+					str_len += strlcat(buf, va_arg(ap, char *), bufsize - str_len);
+					break;
+				case '0':;
+					const char *temp;
+					width = strtonum(format + i + 1, &temp);
+					i += temp - format - 1;
+					if(format[i + 1] == 'd')
+						str_len += signed_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 10, width); 
+					else
+						str_len += unsigned_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 16, width); 
+					break;
+				case 'd':
+					str_len += signed_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 10, 0); 
+					width = 0;
+					break;
+				case 'x':
+					str_len += unsigned_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 16, 0); 
+					width = 0;
+					break;
+				case 'p':
+					buf[str_len++] = '0';
+					buf[str_len++] = 'x';
+					str_len += unsigned_to_base(buf + str_len, bufsize - str_len, (va_arg(ap, unsigned int)), 16, 0);
+					break;
 			}
 			i++;
-		} else{
+		}
+		else{
 			buf[str_len] = format[i];
 			str_len++;
 		}	

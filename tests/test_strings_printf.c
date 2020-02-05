@@ -147,9 +147,13 @@ static void test_snprintf(void)
 	snprintf(buf, bufsize, "test %x", 0xbe);
 	assert(strcmp(buf, "test be") == 0);
 
-    // Hexadecimal
+    // Hexadecimal with width
     snprintf(buf, bufsize, "%04x", 0xef);
     assert(strcmp(buf, "00ef") == 0);
+
+	// Width sanity check
+	snprintf(buf, bufsize, "%0x", 0xef);
+	assert(strcmp(buf, "ef") == 0);
 
     // Pointer
     snprintf(buf, bufsize, "%p", (void *) 0x20200004);
