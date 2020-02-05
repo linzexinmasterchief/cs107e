@@ -135,36 +135,42 @@ static void test_snprintf(void)
 
 	// Ramp it up a bit...
 	snprintf(buf, bufsize, "%c%c = 100%% fresh", 'C', 'S');
-	assert(strcmp(buf, "CS = 100% fresh"));
-    // Decimal
-  //  snprintf(buf, bufsize, "%d", 45);
-  //  assert(strcmp(buf, "45") == 0);
+	assert(strcmp(buf, "CS = 100% fresh") == 0);
 
-  //  // Hexadecimal
-  //  snprintf(buf, bufsize, "%04x", 0xef);
-  //  assert(strcmp(buf, "00ef") == 0);
+    // Decimal
+    snprintf(buf, bufsize, "%d", 45);
+    assert(strcmp(buf, "45") == 0);
+
+	// Simple hexadcimal
+	snprintf(buf, bufsize, "test %x", 0xef);
+	assert(strcmp(buf, "test ef") == 0);
+	snprintf(buf, bufsize, "test %x", 0xbe);
+	assert(strcmp(buf, "test be") == 0);
+
+    // Hexadecimal
+ //   snprintf(buf, bufsize, "%04x", 0xef);
+ //   assert(strcmp(buf, "00ef") == 0);
 
   //  // Pointer
-  //  snprintf(buf, bufsize, "%p", (void *) 0x20200004);
-  //  assert(strcmp(buf, "0x20200004") == 0);
+    snprintf(buf, bufsize, "%p", (void *) 0x20200004);
+    assert(strcmp(buf, "0x20200004") == 0);
 
-  //  // Character
-  //  snprintf(buf, bufsize, "%c", 'A');
-  //  assert(strcmp(buf, "A") == 0);
+    // Character
+    snprintf(buf, bufsize, "%c", 'A');
+    assert(strcmp(buf, "A") == 0);
 
-  //  // String
-  //  snprintf(buf, bufsize, "%s", "binky");
-  //  assert(strcmp(buf, "binky") == 0);
+    // String
+    snprintf(buf, bufsize, "%s", "binky");
+    assert(strcmp(buf, "binky") == 0);
 
-  //  // Format string with intermixed codes
-  //  snprintf(buf, bufsize, "CS%d%c!", 107, 'e');
-  //  assert(strcmp(buf, "CS107e!") == 0);
+    // Format string with intermixed codes
+    snprintf(buf, bufsize, "CS%d%c!", 107, 'e');
+    assert(strcmp(buf, "CS107e!") == 0);
 
   //  // Test return value
   //  assert(snprintf(buf, bufsize, "Hello") == 5);
   //  assert(snprintf(buf, 2, "Hello") == 5);
 }
-
 
 void main(void)
 {

@@ -56,9 +56,10 @@ size_t strlcat(char *dst, const char *src, size_t maxsize)
 {
 	int dst_len = strlen(dst);
 	int cp_max = maxsize - dst_len - 1; // max number of appendable characters
-	memcpy(dst + dst_len, src, cp_max); // starts copying at '\0' of dst
-	dst[maxsize - 1] = '\0'; // terminates the new string
-    return 0;
+	int cp_amt = strlen(src) < cp_max ? strlen(src) : cp_max; // copy the minimum number of characters need
+	memcpy(dst + dst_len, src, cp_amt); // starts copying at '\0' of dst
+	dst[dst_len + cp_amt] = '\0'; // terminates the new string
+    return dst_len + cp_amt + 1; // should be equal to strlen(dst)
 }
 
 /*

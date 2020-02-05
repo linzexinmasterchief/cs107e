@@ -12,7 +12,7 @@ int unsigned_to_base(char *buf, size_t bufsize, unsigned int val, int base, int 
 
 int signed_to_base(char *buf, size_t bufsize, int val, int base, int min_width)
 {
-	char *num = "";
+	char num[33 + min_width];
 	int num_len = 0; // max number of characters written into buffer
 	
 	// multiplier to keep value positive in translation
@@ -26,7 +26,7 @@ int signed_to_base(char *buf, size_t bufsize, int val, int base, int min_width)
 	// turn value into a number
 	while(val != 0){
 		num[num_len] = val % base;
-		num[num_len] += (num[num_len] < 10) ? 48 : 87;
+		num[num_len] += (num[num_len] < 10) ? 48 : 87; // adds according to whether we have a letter or numbers
 		val /= base;
 		num_len++;
 	}
@@ -43,11 +43,15 @@ int signed_to_base(char *buf, size_t bufsize, int val, int base, int min_width)
 		num_len++;
 	}
 
-	// only add what fits in the buffer
-	for(int j = 0; j < bufsize - 1; j++){
+	// only keep what fits in the buffer
+	int j = 0;
+	for(;j < bufsize - 1; j++){
+		if(j == num_len){
+			break;
+		}
 		buf[j] = num[num_len - j - 1];
 	}
-	buf[bufsize - 1] = '\0';
+	buf[j] = '\0';
 
 	return num_len;
 }
@@ -60,31 +64,41 @@ int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 
 int snprintf(char *buf, size_t bufsize, const char *format, ...)
 {
+	buf[0] = '\0';
 	int str_len = 0;
+
 	va_list ap;
-	va_start(ap, *format);
+	va_start(ap, format);
 	for(int i = 0; i < strlen(format); i++){
 		if(format[i] == '%'){
 			char code = format[i + 1];
 			if(code == '%'){
 				buf[str_len] = '%';
-				i++;
+				str_len++;
 			} else if(code == 'c'){
 				buf[str_len] = (char) va_arg(ap, int);
-				i++;
+				str_len++;
 			} else if(code == 's'){
-				i += strlcat(buf, va_arg(ap, char *));
+				str_len += strlcat(buf, va_arg(ap, char *), bufsize - str_len);
+			} else if(code == 'd'){
+				str_len += signed_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 10, 0); 
+			} else if(code == 'x'){
+				str_len += unsigned_to_base(buf + str_len, bufsize - str_len, va_arg(ap, int), 16, 0); 
+			} else if(code == 'p'){
+				buf[str_len++] = '0';
+				buf[str_len++] = 'x';
+				str_len += unsigned_to_base(buf + str_len, bufsize - str_len, (va_arg(ap, unsigned int)), 16, 0);
 			}
+			i++;
 		} else{
 			buf[str_len] = format[i];
 			str_len++;
 		}	
+		buf[str_len] = '\0';
 	}
-	
-	buf[str_len] = '\0';
-	str_len++;
 	va_end(ap);
-    return str_len;
+
+    return ++str_len;
 }
 
 int printf(const char *format, ...)
