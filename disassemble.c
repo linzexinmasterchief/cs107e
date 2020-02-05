@@ -8,7 +8,7 @@ static const char *cond[16] = {"eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
 static const char *opcodes[16] = {"and", "eor", "sub", "rsb", "add", "adc", "sbc", "rsc",
                                   "tst", "teq", "cmp", "cmn", "orr", "mov", "bic", "mvn"};
 
-
+const int NUM_DECODE = 400;
 /* 
  * This bitfield is declared using exact same layout as bits are organized in
  * the encoded instruction. Accessing struct.field will extract just the bits
@@ -33,6 +33,7 @@ struct insn  {
 static void decode(unsigned int *addr)
 {
     struct insn in = *(struct insn *)addr;
+	printf("%p%c %s %x %x %x", addr, ':', opcodes[in.opcode], in.reg_dst, in.reg_op1, in.reg_op2);
     printf("opcode is %s, s is %d, reg_dst is r%d\n", opcodes[in.opcode], in.s, in.reg_dst);
 }
 
@@ -41,8 +42,10 @@ void main(void)
 {
     uart_init();
 
-    unsigned int encoded = 0xe0843005; // example instruction from assignment writeup
-    decode(&encoded);
+    unsigned int start = 0x8000;
+	for(unsigned int i = start; i < start + NUM_DECODE; i += 4){
+		decode(&i);
+	}
 
     uart_putchar(EOT);
 }
