@@ -57,6 +57,7 @@ int signed_to_base(char *buf, size_t bufsize, int val, int base, int min_width)
 
 int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 {
+	buf[0] = '\0'; // Start by null terminating for the sake of strlcat
 	int str_len = 0;
 	unsigned int width = 0;
 	for(int i = 0; i < strlen(format); i++){
@@ -112,13 +113,11 @@ int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 		}	
 		buf[str_len] = '\0'; // IMPORTANT: Don't forget to null terminate after every addition
 	}
-    return ++str_len; // return incremented value because of last null terminator
+    return str_len;
 }
 
 int snprintf(char *buf, size_t bufsize, const char *format, ...)
 {
-	buf[0] = '\0';
-
 	va_list args;
 	va_start(args, format);
 	int str_len = vsnprintf(buf, bufsize, format, args); 

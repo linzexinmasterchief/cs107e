@@ -171,9 +171,13 @@ static void test_snprintf(void)
     snprintf(buf, bufsize, "CS%d%c!", 107, 'e');
     assert(strcmp(buf, "CS107e!") == 0);
 
-  //  // Test return value
-  //  assert(snprintf(buf, bufsize, "Hello") == 5);
-  //  assert(snprintf(buf, 2, "Hello") == 5);
+    // Test return value
+    assert(snprintf(buf, bufsize, "Hello") == 5);
+    assert(snprintf(buf, 2, "Hello") == 5);
+
+	//Test new line
+	assert(snprintf(buf, bufsize, "\n"));
+	assert(strcmp(buf, "\n") == 0);
 }
 
 void main(void)
