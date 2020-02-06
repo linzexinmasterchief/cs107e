@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include "uart.h"
 
-#define MAX_OUTPUT_LEN 1024
+#define MAX_OUTPUT_LEN 1022
 
 int unsigned_to_base(char *buf, size_t bufsize, unsigned int val, int base, int min_width)
 {
@@ -57,22 +57,25 @@ int signed_to_base(char *buf, size_t bufsize, int val, int base, int min_width)
 
 int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 {
-	buf[0] = '\0'; // Start by null terminating for the sake of strlcat
+	char temp_buf_arr[MAX_OUTPUT_LEN];
+	char *temp_buf = temp_buf_arr;
+	temp_buf[0] = '\0'; // Start with null termination for the sake of strlcat
+
 	int str_len = 0;
 	unsigned int width = 0;
 	for(int i = 0; i < strlen(format); i++){
 		if(format[i] == '%'){
 			switch (format[i + 1]) {
 				case '%':
-					buf[str_len] = '%';
+					temp_buf[str_len] = '%';
 					str_len++;
 					break;
 				case 'c':
-					buf[str_len] = (char) va_arg(args, int);
+					temp_buf[str_len] = (char) va_arg(args, int);
 					str_len++;
 					break;
 				case 's':
-					str_len += strlcat(buf, va_arg(args, char *), bufsize - str_len);
+					str_len += strlcat(temp_buf, va_arg(args, char *), MAX_OUTPUT_LEN - str_len);
 					break;
 
 				/*
@@ -85,35 +88,40 @@ int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 					width = strtonum(format + i + 1, &temp);
 					i += temp - format - 1; // temp is set to start at the digit type, the - 1 is for consistency
 					if(format[i + 1] == 'd')
-						str_len += signed_to_base(buf + str_len, bufsize - str_len, va_arg(args, int), 10, width); 
+						str_len += signed_to_base(temp_buf + str_len, MAX_OUTPUT_LEN - str_len, va_arg(args, int), 10, width); 
 					else
-						str_len += unsigned_to_base(buf + str_len, bufsize - str_len, va_arg(args, int), 16, width); 
+						str_len += unsigned_to_base(temp_buf + str_len, MAX_OUTPUT_LEN - str_len, va_arg(args, int), 16, width); 
 					break;
 				case 'd':
-					str_len += signed_to_base(buf + str_len, bufsize - str_len, va_arg(args, int), 10, 0); 
+					str_len += signed_to_base(temp_buf + str_len, MAX_OUTPUT_LEN - str_len, va_arg(args, int), 10, 0); 
 					width = 0;
 					break;
 				case 'x':
-					str_len += unsigned_to_base(buf + str_len, bufsize - str_len, va_arg(args, unsigned int), 16, 0); 
+					str_len += unsigned_to_base(temp_buf + str_len, MAX_OUTPUT_LEN - str_len, va_arg(args, unsigned int), 16, 0); 
 					width = 0;
 					break;
 
 				case 'p':
 					// add the formatting character and increment str_len all in one go
-					buf[str_len++] = '0'; 
-					buf[str_len++] = 'x';
-					str_len += unsigned_to_base(buf + str_len, bufsize - str_len, (va_arg(args, unsigned int)), 16, 0);
+					temp_buf[str_len++] = '0'; 
+					temp_buf[str_len++] = 'x';
+					str_len += unsigned_to_base(temp_buf + str_len, MAX_OUTPUT_LEN - str_len, (va_arg(args, unsigned int)), 16, 0);
 					break;
 			}
 			i++;
 		}
 		else{
-			buf[str_len] = format[i];
+			temp_buf[str_len] = format[i];
 			str_len++;
 		}	
-		buf[str_len] = '\0'; // IMPORTANT: Don't forget to null terminate after every addition
+		temp_buf[str_len] = '\0'; // IMPORTANT: Don't forget to null terminate after every addition
 	}
-    return str_len;
+
+	// populate the buffer
+	memcpy(buf, temp_buf, bufsize - 1);
+	buf[bufsize - 1] = '\0';
+
+    return str_len; // doesn't return incremented value because of last null terminator
 }
 
 int snprintf(char *buf, size_t bufsize, const char *format, ...)
