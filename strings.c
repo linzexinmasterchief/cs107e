@@ -55,11 +55,12 @@ int strcmp(const char *s1, const char *s2)
 size_t strlcat(char *dst, const char *src, size_t maxsize)
 {
 	int dst_len = strlen(dst);
+	int src_len = strlen(src);
 	int cp_max = maxsize - dst_len - 1; // max number of appendable characters
-	int cp_amt = strlen(src) < cp_max ? strlen(src) : cp_max; // copy the minimum number of characters need
+	int cp_amt = strlen(src) < cp_max ? src_len : cp_max; // copy the minimum number of characters need
 	memcpy(dst + dst_len, src, cp_amt); // starts copying at '\0' of dst
 	dst[dst_len + cp_amt] = '\0'; // terminates the new string
-    return dst_len + cp_amt + 1; // should be equal to strlen(dst)
+    return dst_len + src_len; // should be equal to strlen(dst)
 }
 
 /*
