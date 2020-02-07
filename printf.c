@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include "uart.h"
 
-#define MAX_OUTPUT_LEN 1022
+#define MAX_OUTPUT_LEN 1024
 
 int unsigned_to_base(char *buf, size_t bufsize, unsigned int val, int base, int min_width)
 {
@@ -63,6 +63,7 @@ int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 
 	int str_len = 0;
 	unsigned int width = 0;
+	const char *temp = "\0";
 	for(int i = 0; i < strlen(format); i++){
 		if(format[i] == '%'){
 			switch (format[i + 1]) {
@@ -75,18 +76,17 @@ int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 					str_len++;
 					break;
 				case 's':
-					str_len += strlcat(temp_buf, va_arg(args, char *), MAX_OUTPUT_LEN - str_len);
+					str_len = strlcat(temp_buf, va_arg(args, char *), MAX_OUTPUT_LEN - str_len);
 					break;
-
+				
 				/*
 				* For the digit cases note that we are writing directly to the end of the buffer,
 				* starting at the '/0'. str_len informs where we begin and how much space we have
 				* available to write to. 
 				*/
-				case '0':;
-					const char *temp;
+				case '0':
 					width = strtonum(format + i + 1, &temp);
-					i += temp - format - 1; // temp is set to start at the digit type, the - 1 is for consistency
+					i = temp - format - 1; // temp is set to start at the digit type, the - 1 is for consistency
 					if(format[i + 1] == 'd')
 						str_len += signed_to_base(temp_buf + str_len, MAX_OUTPUT_LEN - str_len, va_arg(args, int), 10, width); 
 					else
@@ -106,6 +106,8 @@ int vsnprintf(char *buf, size_t bufsize, const char *format, va_list args)
 					temp_buf[str_len++] = '0'; 
 					temp_buf[str_len++] = 'x';
 					str_len += unsigned_to_base(temp_buf + str_len, MAX_OUTPUT_LEN - str_len, (va_arg(args, unsigned int)), 16, 0);
+					break;
+				default:
 					break;
 			}
 			i++;
@@ -137,12 +139,14 @@ int snprintf(char *buf, size_t bufsize, const char *format, ...)
 int printf(const char *format, ...)
 {
 	char print[MAX_OUTPUT_LEN];
-	
+
 	va_list args;
 	va_start(args, format);
 	int str_len = vsnprintf(print, MAX_OUTPUT_LEN, format, args); 
 	va_end(args);
 
-	uart_putstring(print);
+	for(char *i = print; *i; i++){
+		uart_putchar(*(i));
+	}
     return str_len;
 }
