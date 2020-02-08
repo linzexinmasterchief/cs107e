@@ -2,8 +2,8 @@
  * File: malloc.c
  * --------------
  * This is the simple "bump" allocator from lecture.
- * An allocation request is serviced by tacking on the requested
- * space to the end of the heap thus far. 
+ * An allocation request is serviced by using sbrk to extend
+ * the heap segment. 
  * It does not recycle memory (free is a no-op) so when all the
  * space set aside for the heap is consumed, it will not be able
  * to service any further requests.
@@ -14,6 +14,7 @@
  */
 
 #include "malloc.h"
+#include "malloc_internal.h"
 #include "printf.h"
 #include <stddef.h> // for NULL
 #include "strings.h"
@@ -25,19 +26,31 @@ extern int __bss_end__;
 #define STACK_END ((char *)STACK_START - STACK_SIZE)
 
 /*
- * The pool of memory used for the heap starts at the top end of the 
- * data section and extends to the bottom end of the stack.
+ * The pool of memory available for the heap starts at the upper end of the 
+ * data section and can extend from there up to the lower end of the stack.
  * It uses symbol __bss_end__ from memmap to locate data end
  * and calculates stack end assuming a 16MB stack.
  *
  * Global variables for the bump allocator:
  *
- * `heap_end` tracks location of next available address in heap
- * `heap_max` tracks location where heap is exhausted
- * 
+ * `heap_start`  location where heap segment starts
+ * `heap_end`    location at end of in-use portion of heap segment 
  */
+
+// Initial heap segment starts at bss_end and is empty
+static void *heap_start = &__bss_end__;
 static void *heap_end = &__bss_end__;
-static void *heap_max = STACK_END;
+
+void *sbrk(int nbytes)
+{
+    void *prev_end = heap_end;
+    if ((char *)prev_end + nbytes > STACK_END) {
+        return NULL;
+    } else {
+        heap_end = (char *)prev_end + nbytes;
+        return prev_end;
+    }
+}
 
 
 // Simple macro to round up x to multiple of n.
@@ -49,11 +62,7 @@ void *malloc (size_t nbytes)
 {
     // TODO: replace with your code
     nbytes = roundup(nbytes, 8);
-    if ((char *)heap_end + nbytes > (char *)heap_max)
-        return NULL;
-    void *alloc = heap_end;
-    heap_end = (char *)heap_end + nbytes;
-    return alloc;
+    return sbrk(nbytes);
 }
 
 void free (void *ptr)
@@ -63,7 +72,7 @@ void free (void *ptr)
 
 void *realloc (void *orig_ptr, size_t new_size)
 {
-    // TODO: replace with yorur code
+    // TODO: replace with your code
     void *new_ptr = malloc(new_size);
     if (!new_ptr) return NULL;
     // ideally would copy the min of new_size and old_size, but this allocator
@@ -77,6 +86,7 @@ void *realloc (void *orig_ptr, size_t new_size)
 void heap_dump (const char *label)
 {
     printf("\n---------- HEAP DUMP (%s) ----------\n", label);
+    printf("Heap segment at %p - %p\n", heap_start, heap_end);
     // TODO: fill in your own code here
     printf("----------  END DUMP (%s) ----------\n", label);
 }

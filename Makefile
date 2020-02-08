@@ -1,4 +1,5 @@
-APPLICATION = apps/heap
+APPLICATION = apps/heapclient.bin
+TEST = tests/test_backtrace_malloc.bin
 MY_MODULES =  backtrace.o malloc.o
 
 # printf.o strings.o gpio.o timer.o
@@ -29,7 +30,7 @@ CFLAGS += -mapcs-frame -fno-omit-frame-pointer -mpoke-function-name -Wpointer-ar
 LDFLAGS = -nostdlib -T memmap -L$(CS107E)/lib
 LDLIBS = -lpi -lgcc
 
-all : $(APPLICATION).bin $(MY_MODULES)
+all : $(MY_MODULES) $(APPLICATION) $(TEST)
 
 %.bin: %.elf
 	arm-none-eabi-objcopy $< -O binary $@
@@ -48,14 +49,11 @@ all : $(APPLICATION).bin $(MY_MODULES)
 
 nameless.o: CFLAGS += -mno-poke-function-name
 
-install: $(APPLICATION).bin
+install: $(APPLICATION)
 	rpi-install.py -p $<
 
-test: tests/test_backtrace_malloc.bin
+test: $(TEST)
 	rpi-install.py -p $<
-
-debug: tests/test_backtrace_malloc.elf
-	arm-none-eabi-gdb -q $<
 
 clean:
 	rm -f *.o *.bin *.elf *.list *~

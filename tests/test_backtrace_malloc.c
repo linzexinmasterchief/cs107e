@@ -1,14 +1,27 @@
 #include "assert.h"
 #include "backtrace.h"
 #include "malloc.h"
+#include "../malloc_internal.h"
 #include "../nameless.h"
+#include "printf.h"
 #include "rand.h"
 #include <stdint.h>
 #include "strings.h"
 #include "uart.h"
 
 void main(void);
-void heap_dump(const char *label);  // Debugging output from malloc module
+
+static void test_name_of(void)
+{
+    const char *name;
+
+    name = name_of((uintptr_t)main);
+    assert(strcmp(name, "main") == 0);
+    name = name_of((uintptr_t)uart_init);
+    assert(strcmp(name, "uart_init") == 0);
+    name = name_of((uintptr_t)mystery); // function compiled without embedded name
+    assert(strcmp(name, "???") == 0);
+}
 
 static void test_backtrace_simple(void)
 {
@@ -77,24 +90,29 @@ static void test_heap_simple(void)
 // Examine each string, verify expected contents intact.
 static void test_heap_multiple(void)
 {
-    int n = 26;
-    char *arr[n];
+    int max_trials = 3;
+    char *arr[max_trials*8];
 
-    for (int i = 0; i < n; i++) {
-        int num_repeats = i + 1;
-        char *ptr = malloc(num_repeats + 1);
-        assert(ptr != NULL);
-        assert((uintptr_t)ptr % 8 == 0); // verify 8-byte alignment
-        memset(ptr, 'A' - 1 + num_repeats, num_repeats);
-        ptr[num_repeats] = '\0';
-        arr[i] = ptr;
-    }
-    for (int i = n-1; i >= 0; i--) {
-        int len = strlen(arr[i]);
-        char first = arr[i][0], last = arr[i][len -1];
-        assert(first == 'A' - 1 + len);
-        assert(first == last);
-        free(arr[i]);
+    for (int ntrials = 1; ntrials <= max_trials; ntrials++) {
+        int n = (ntrials*8);
+        for (int i = 0; i < n; i++) {
+            int num_repeats = i + 1;
+            char *ptr = malloc(num_repeats + 1);
+            assert(ptr != NULL);
+            assert((uintptr_t)ptr % 8 == 0); // verify 8-byte alignment
+            memset(ptr, 'A' - 1 + num_repeats, num_repeats);
+            ptr[num_repeats] = '\0';
+            arr[i] = ptr;
+        }
+        heap_dump("After all allocations");
+        for (int i = n-1; i >= 0; i--) {
+            int len = strlen(arr[i]);
+            char first = arr[i][0], last = arr[i][len -1];
+            assert(first == 'A' - 1 + len);  // verify payload contents
+            assert(first == last);
+            free(arr[i]);
+        }
+        heap_dump("After all frees");
     }
 }
 
@@ -120,8 +138,8 @@ static void test_heap_recycle(int niter)
     free(p);
     size_t extent = (char *)heap_high - (char *)heap_low;
     size_t percent = total > extent ? (100*total)/extent : 0;
-    printf("\nRecycling report:\n");
-    printf("Completed %d iterations. Allocated %d bytes. Heap extent %d bytes. Recycling = %d%%\n", niter, total, extent, percent);
+    printf("\nRecycling report for %d iterations:\n", niter);
+    printf("Serviced requests totaling %d bytes, heap extent is %d bytes. Recycled %d%%\n", total, extent, percent);
 }
 
 void test_heap_redzones(void)
@@ -146,6 +164,9 @@ void test_heap_redzones(void)
 void main(void)
 {
     uart_init();
+    uart_putstring("Start execute main() in tests/test_backtrace_malloc.c\n");
+
+    test_name_of();
 
     test_backtrace_simple();
     test_backtrace_simple(); // Again so you can see the main offset change!
@@ -155,9 +176,10 @@ void main(void)
 
     test_heap_simple();
     test_heap_multiple();
-    test_heap_recycle(10);
+    test_heap_recycle(20);
     
     //test_heap_redzones(); // DO NOT USE unless you implemented red zone protection
 
-    printf("\nProgram %s completed.\n", __FILE__);
+    uart_putstring("\nSuccessfully finished executing main() in tests/test_backtrace_malloc.c\n");
+    uart_putchar(EOT);
 }
