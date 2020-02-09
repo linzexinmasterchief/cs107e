@@ -88,7 +88,7 @@ static void decode(unsigned int *addr)
 
 		struct branin brin = *(struct branin *)addr;
 		
-		printf("%s %d", op, brin.offset);
+		printf("%s %d\n", op, brin.offset);
 	} else { 
 		// Might come back to populate this section in the future
 	}
