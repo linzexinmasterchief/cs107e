@@ -3,14 +3,38 @@
 
 const char *name_of(uintptr_t fn_start_addr)
 {
-    // TODO: Fill in your code here.
+	char *name_ptr = (char *)(fn_start_addr - 4);
+	if(name_ptr[3] == 0xff) {
+		int length = name_ptr[0]; // TODO: what if name is bigger than 255
+		return name_ptr - length;
+	}	
     return "???";
 }
 
 int backtrace (frame_t f[], int max_frames)
 {
-    // TODO: Fill in your code here.
-    return 0;
+	// get the backtrace frame pointer
+	uintptr_t *cur_fp;
+	__asm__("mov %0, fp" : "=r" (cur_fp));
+	// get the bactrace caller pc
+	uintptr_t *cur_pc;
+
+	int count = 0;
+	for(; cur_fp[-3] > 0; cur_fp = (uintptr_t *)cur_fp[-3]){ // loops over frame pointers
+		if(count >= max_frames) break;		
+		
+		// function starts 3 instructions before pc says	
+		cur_pc = (uintptr_t *)cur_fp[-3];
+		uintptr_t start = *cur_pc - 12; 
+		
+		// populate the current frame
+		f[count].name = name_of(start);
+		f[count].resume_addr = cur_fp[-1]; // dereference lr
+		f[count].resume_offset = f[count].resume_addr - start;	
+
+		count++;
+	}
+    return count;
 }
 
 void print_frames (frame_t f[], int n)
