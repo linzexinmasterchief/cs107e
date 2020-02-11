@@ -66,12 +66,11 @@ void *sbrk(int nbytes)
 void *split(struct header *alloc, size_t amt_free, size_t new_size){
 	alloc->payload_size = new_size;
 	alloc->status = 1;
-	if(amt_free - new_size > 0) {
+	if(amt_free - new_size > 0) { // add a new header for the remaining memory
 		alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = amt_free - new_size - HEADER_SIZE;
 		free(alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE);
-		// alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
 	}
-	return &alloc[1];
+	return alloc + 1;
 }
 
 // Simple macro to round up x to multiple of n.
@@ -80,8 +79,11 @@ void *split(struct header *alloc, size_t amt_free, size_t new_size){
 #define roundup(x,n) (((x)+((n)-1))&(~((n)-1)))
 
 void *malloc (size_t nbytes)
-{
+{	
+	if(nbytes == 0) return NULL;
     nbytes = roundup(nbytes, 8);
+
+	// Search for an available slot in the existing heap
 	struct header *alloc = (struct header *)heap_start;
 	while(alloc < (struct header *)heap_end) {
 		if(alloc->status == 0 && alloc->payload_size >= nbytes)
@@ -89,17 +91,20 @@ void *malloc (size_t nbytes)
 		alloc += (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
 	}	
 
+	// Worst case add a new block at the end
 	alloc = (struct header *)sbrk(nbytes + HEADER_SIZE);
 	alloc->payload_size = nbytes;
 	alloc->status = 1;
-	return &alloc[1];
+	return alloc + 1;
 }
 
 void free (void *ptr)
 {
+	if(ptr == NULL) return;
     struct header *alloc = (struct header *)ptr - 1;
 	alloc->status = 0;
 	
+	// Free all contiguous unused blocks
 	struct header *next_alloc = alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
 	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
 		alloc->payload_size += HEADER_SIZE + next_alloc->payload_size;
@@ -109,9 +114,16 @@ void free (void *ptr)
 
 void *realloc (void *orig_ptr, size_t new_size) 
 {
+	if(orig_ptr == NULL) return malloc(new_size);
+	if(new_size == 0) {
+		free(orig_ptr);
+		return NULL;
+	}
+
 	new_size = roundup(new_size, 8);
     struct header *alloc = (struct header *)orig_ptr - 1;
 
+	// Attempt to resize in place
 	size_t amt_free = alloc->payload_size;
 	struct header *next_alloc = alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
 	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
@@ -121,6 +133,7 @@ void *realloc (void *orig_ptr, size_t new_size)
 		next_alloc += (HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE;
 	}	
 
+	// Worst case add a new block at the end
     void *new_ptr = malloc(new_size);
     if (!new_ptr) return NULL;
     memcpy(new_ptr, orig_ptr, new_size);
@@ -137,7 +150,8 @@ void heap_dump (const char *label)
 	while(alloc < (struct header *)heap_end) {
 		printf("Block #%d Status: %d Size: %d \n", count, alloc->status, alloc->payload_size); 
 
-		char *data = (char *)(&alloc[1]);
+		// Note: The choice to interpret the data as a char* is arbitrary but helps with debugging
+		char *data = (char *)(alloc + 1);
 		for(int i = 0; i < MAX_DUMP_SIZE; i++){
 			printf("%c", data[i]);
 		}

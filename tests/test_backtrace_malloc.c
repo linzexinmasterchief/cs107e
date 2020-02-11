@@ -177,6 +177,19 @@ void test_heap_redzones(void)
     free(ptr);      // ptr is NOT ok
 }
 
+void test_heap_edge(){
+    char *s = realloc(NULL, 12);
+    memcpy(s, "hello", 6);
+	heap_dump("realloc(NULL, size) == malloc(size)");
+
+	free(NULL);
+	heap_dump("free(NULL) does nothing");
+
+	assert(realloc(s, 0) == NULL);
+	heap_dump("realloc(s, 0) == free(s)");
+
+	assert(malloc(0) == NULL);
+}
 
 void main(void)
 {
@@ -194,7 +207,8 @@ void main(void)
     test_heap_simple();
     test_heap_multiple();
     test_heap_recycle(20);
-    
+	test_heap_edge();    
+
     //test_heap_redzones(); // DO NOT USE unless you implemented red zone protection
 
     uart_putstring("\nSuccessfully finished executing main() in tests/test_backtrace_malloc.c\n");
