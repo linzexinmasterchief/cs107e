@@ -64,14 +64,21 @@ static void test_heap_dump(void)
     free(p);
     heap_dump("After free(p)");
 
+	// Malloc should split the space where "Hello!" used to be
 	p = malloc(4);
 	heap_dump("After p = \"malloc(4)\"");
 	memcpy(p, "Bye", 4);
 	heap_dump("After p = \"Bye\"");
 
+	// Free should open up both allocations
 	free(p);
 	heap_dump("After free(p)");
 
+	// Reallocate should concatenate the remaining blocks
+	char *q = (char *)malloc(17);
+	heap_dump("After q = malloc(17)");
+	free(q);
+	heap_dump("After free(q)");
     p = realloc(p, 32);
     heap_dump("After p = realloc(p, 32)");
 

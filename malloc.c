@@ -59,6 +59,13 @@ void *sbrk(int nbytes)
     }
 }
 
+void *split(struct header *alloc, size_t old_size, size_t new_size){
+	alloc->payload_size = new_size;
+	alloc->status = 1;
+	alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = old_size - new_size - HEADER_SIZE;
+	alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
+	return &alloc[1];
+}
 
 // Simple macro to round up x to multiple of n.
 // The efficient but tricky bitwise approach it uses
@@ -94,24 +101,37 @@ void *malloc (size_t nbytes)
 
 void free (void *ptr)
 {
-    struct header *alloc = (struct header *)ptr;
-	alloc[-1].status = 0;
-	struct header *next_alloc = alloc + alloc[-1].payload_size / HEADER_SIZE;
-
+    struct header *alloc = (struct header *)ptr - 1;
+	alloc->status = 0;
+	
+	struct header *next_alloc = alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
 	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
-		alloc[-1].payload_size += HEADER_SIZE + next_alloc->payload_size;
-		next_alloc = &next_alloc[(HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE];
+		alloc->payload_size += HEADER_SIZE + next_alloc->payload_size;
+		next_alloc += (HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE;
 	}	
 }
 
-void *realloc (void *orig_ptr, size_t new_size)
+void *realloc (void *orig_ptr, size_t new_size) // can I assume this is 8 bytes
 {
-    // TODO: replace with your code
+    struct header *alloc = (struct header *)orig_ptr - 1;
+
+	size_t amt_free = alloc->payload_size;
+	struct header *next_alloc = alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
+	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
+		amt_free += HEADER_SIZE + next_alloc->payload_size;
+		
+		if(amt_free >= new_size){
+			alloc->payload_size = new_size;
+			alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = amt_free - new_size - HEADER_SIZE;
+			alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
+			
+			return &alloc[1];
+		}
+		next_alloc += (HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE;
+	}	
+
     void *new_ptr = malloc(new_size);
     if (!new_ptr) return NULL;
-    // ideally would copy the min of new_size and old_size, but this allocator
-    // doesn't know the old_size. Why not? 
-    // Why is it "safe" (but not efficient) to copy new_size bytes?
     memcpy(new_ptr, orig_ptr, new_size);
     free(orig_ptr);
     return new_ptr;
