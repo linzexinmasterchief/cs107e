@@ -80,7 +80,8 @@ void *split(struct header *alloc, size_t amt_free, size_t new_size){
 
 void *malloc (size_t nbytes)
 {	
-	if(nbytes == 0) return NULL;
+	if(nbytes == 0) return NULL; // Don't need to allocate data
+
     nbytes = roundup(nbytes, 8);
 
 	// Search for an available slot in the existing heap
@@ -100,7 +101,8 @@ void *malloc (size_t nbytes)
 
 void free (void *ptr)
 {
-	if(ptr == NULL) return;
+	if(ptr == NULL) return; // Otherwise could free the top of memory
+
     struct header *alloc = (struct header *)ptr - 1;
 	alloc->status = 0;
 	
@@ -114,8 +116,8 @@ void free (void *ptr)
 
 void *realloc (void *orig_ptr, size_t new_size) 
 {
-	if(orig_ptr == NULL) return malloc(new_size);
-	if(new_size == 0) {
+	if(orig_ptr == NULL) return malloc(new_size); // Specifically defined behavior
+	if(new_size == 0) { // Specifically defined behavior
 		free(orig_ptr);
 		return NULL;
 	}
