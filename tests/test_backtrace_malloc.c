@@ -92,10 +92,12 @@ static void test_heap_simple(void)
 
     s = malloc(6);
     memcpy(s, "hello", 6);
+	heap_dump("Put \"hello\"");
     assert(strcmp(s, "hello") == 0);
 
     s = realloc(s, 12);
     strlcat(s, " world", 12);
+	heap_dump("Resized and added \" world\"");
     assert(strcmp(s, "hello world") == 0);
     free(s);
 }

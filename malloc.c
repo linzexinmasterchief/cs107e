@@ -59,11 +59,18 @@ void *sbrk(int nbytes)
     }
 }
 
-void *split(struct header *alloc, size_t old_size, size_t new_size){
+/**
+* Given a contiguous chunk of free memory of size amt_free immediately following the header alloc, split
+* that memory into two pieces: one of size new size and one for whatever remains
+*/
+void *split(struct header *alloc, size_t amt_free, size_t new_size){
 	alloc->payload_size = new_size;
 	alloc->status = 1;
-	alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = old_size - new_size - HEADER_SIZE;
-	alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
+	if(amt_free - new_size > 0) {
+		alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = amt_free - new_size - HEADER_SIZE;
+		free(alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE);
+		// alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
+	}
 	return &alloc[1];
 }
 
@@ -77,19 +84,8 @@ void *malloc (size_t nbytes)
     nbytes = roundup(nbytes, 8);
 	struct header *alloc = (struct header *)heap_start;
 	while(alloc < (struct header *)heap_end) {
-		if(alloc->status == 0 && alloc->payload_size >= nbytes){
-			size_t old_size = alloc->payload_size;	
-
-			alloc->payload_size = nbytes;
-			alloc->status = 1;
-
-			if(old_size - nbytes > 0){
-				alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = old_size - nbytes - HEADER_SIZE;
-				alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
-			}
-			
-			return &alloc[1];
-		}
+		if(alloc->status == 0 && alloc->payload_size >= nbytes)
+			return split(alloc, alloc->payload_size, nbytes);
 		alloc += (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
 	}	
 
@@ -111,22 +107,17 @@ void free (void *ptr)
 	}	
 }
 
-void *realloc (void *orig_ptr, size_t new_size) // can I assume this is 8 bytes
+void *realloc (void *orig_ptr, size_t new_size) 
 {
+	new_size = roundup(new_size, 8);
     struct header *alloc = (struct header *)orig_ptr - 1;
 
 	size_t amt_free = alloc->payload_size;
 	struct header *next_alloc = alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
 	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
 		amt_free += HEADER_SIZE + next_alloc->payload_size;
-		
-		if(amt_free >= new_size){
-			alloc->payload_size = new_size;
-			alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = amt_free - new_size - HEADER_SIZE;
-			alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
-			
-			return &alloc[1];
-		}
+		if(amt_free >= new_size)
+			return split(alloc, amt_free, new_size);
 		next_alloc += (HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE;
 	}	
 
