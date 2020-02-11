@@ -55,8 +55,11 @@ static void test_heap_dump(void)
 {
     heap_dump("Empty heap");
 
-    char *p = malloc(24);
-    heap_dump("After p = malloc(24)");
+    char *p = (char *)malloc(12);
+    heap_dump("After p = malloc(12)");
+
+	memcpy(p, "Hello!", 12);
+	heap_dump("After p = \"Hello World!\"");
 
     free(p);
     heap_dump("After free(p)");

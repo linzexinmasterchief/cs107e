@@ -24,7 +24,13 @@ extern int __bss_end__;
 #define STACK_START 0x8000000
 #define STACK_SIZE  0x1000000
 #define STACK_END ((char *)STACK_START - STACK_SIZE)
+#define MAX_DUMP_SIZE 16
 
+struct header {
+	size_t payload_size;
+	int status;
+};
+#define HEADER_SIZE sizeof(struct header)
 /*
  * The pool of memory available for the heap starts at the upper end of the 
  * data section and can extend from there up to the lower end of the stack.
@@ -60,14 +66,17 @@ void *sbrk(int nbytes)
 
 void *malloc (size_t nbytes)
 {
-    // TODO: replace with your code
     nbytes = roundup(nbytes, 8);
-    return sbrk(nbytes);
+	struct header *alloc = (struct header *)sbrk(nbytes + HEADER_SIZE);
+	alloc->payload_size = nbytes;
+	alloc->status = 1;
+	return &alloc[1];
 }
 
 void free (void *ptr)
 {
-    // TODO: fill in your own code here
+    struct header *alloc = (struct header *)ptr;
+	alloc[-1].status = 0;
 }
 
 void *realloc (void *orig_ptr, size_t new_size)
@@ -87,7 +96,20 @@ void heap_dump (const char *label)
 {
     printf("\n---------- HEAP DUMP (%s) ----------\n", label);
     printf("Heap segment at %p - %p\n", heap_start, heap_end);
-    // TODO: fill in your own code here
+	struct header *alloc = (struct header *)heap_start; 
+	int count = 0;
+	while(alloc < (struct header *)heap_end) {
+		printf("Block #%d Status: %d Size: %d \n", count, alloc->status, alloc->payload_size); 
+
+		char *data = (char *)(&alloc[1]);
+		for(int i = 0; i < MAX_DUMP_SIZE; i++){
+			printf("%c", data[i]);
+		}
+		printf("\n");
+
+		count++;
+		alloc = &alloc[HEADER_SIZE + alloc->payload_size];
+	}	
     printf("----------  END DUMP (%s) ----------\n", label);
 }
 
