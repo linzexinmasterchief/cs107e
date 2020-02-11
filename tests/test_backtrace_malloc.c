@@ -59,13 +59,18 @@ static void test_heap_dump(void)
     heap_dump("After p = malloc(12)");
 
 	memcpy(p, "Hello!", 12);
-	heap_dump("After p = \"Hello World!\"");
+	heap_dump("After p = \"Hello!\"");
 
     free(p);
     heap_dump("After free(p)");
 
-    p = malloc(16);
-    heap_dump("After p = malloc(16)");
+	p = malloc(4);
+	heap_dump("After p = \"malloc(4)\"");
+	memcpy(p, "Bye", 4);
+	heap_dump("After p = \"Bye\"");
+
+	free(p);
+	heap_dump("After free(p)");
 
     p = realloc(p, 32);
     heap_dump("After p = realloc(p, 32)");

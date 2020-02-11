@@ -26,6 +26,7 @@ extern int __bss_end__;
 #define STACK_END ((char *)STACK_START - STACK_SIZE)
 #define MAX_DUMP_SIZE 16
 
+// SHOULD ALWAYS BE 8 BYTE ALIGNED
 struct header {
 	size_t payload_size;
 	int status;
@@ -67,7 +68,25 @@ void *sbrk(int nbytes)
 void *malloc (size_t nbytes)
 {
     nbytes = roundup(nbytes, 8);
-	struct header *alloc = (struct header *)sbrk(nbytes + HEADER_SIZE);
+	struct header *alloc = (struct header *)heap_start;
+	while(alloc < (struct header *)heap_end) {
+		if(alloc->status == 0 && alloc->payload_size >= nbytes){
+			size_t old_size = alloc->payload_size;	
+
+			alloc->payload_size = nbytes;
+			alloc->status = 1;
+
+			if(old_size - nbytes > 0){
+				alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = old_size - nbytes - HEADER_SIZE;
+				alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].status = 0;
+			}
+			
+			return &alloc[1];
+		}
+		alloc += (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
+	}	
+
+	alloc = (struct header *)sbrk(nbytes + HEADER_SIZE);
 	alloc->payload_size = nbytes;
 	alloc->status = 1;
 	return &alloc[1];
@@ -77,6 +96,12 @@ void free (void *ptr)
 {
     struct header *alloc = (struct header *)ptr;
 	alloc[-1].status = 0;
+	struct header *next_alloc = alloc + alloc[-1].payload_size / HEADER_SIZE;
+
+	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
+		alloc[-1].payload_size += HEADER_SIZE + next_alloc->payload_size;
+		next_alloc = &next_alloc[(HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE];
+	}	
 }
 
 void *realloc (void *orig_ptr, size_t new_size)
@@ -108,7 +133,7 @@ void heap_dump (const char *label)
 		printf("\n");
 
 		count++;
-		alloc = &alloc[HEADER_SIZE + alloc->payload_size];
+		alloc += (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
 	}	
     printf("----------  END DUMP (%s) ----------\n", label);
 }
