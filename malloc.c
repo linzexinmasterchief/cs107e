@@ -111,7 +111,7 @@ void memory_report ()
     printf(  "         Mini-Valgrind Memory Report         \n");
     printf(  "=============================================\n");
 	printf("\n");
-	printf("malloc/free: %d	allocs, %d frees, %d bytes allocated", num_alloc, num_frees, num_bytes);
+	printf("malloc/free: %d	allocs, %d frees, %d bytes allocated\n", num_alloc, num_frees, num_bytes);
 	
 	printf("\n");
 	
@@ -122,12 +122,9 @@ void memory_report ()
 		if(check_redzone(alloc) == 0){
 			byte_total += alloc->request;
 			block_total++;
-			printf("%d bytes are lost, allocated by", alloc->request);
+			printf("%d bytes are lost, allocated by\n", alloc->request);
     		for (int i = 0; i < sizeof(alloc->f) / sizeof(alloc->f[0]); i++)
-    		    printf("#%d 0x%x at %s+%d\n", 
-					i, 
-					(unsigned int)alloc->f[i].resume_addr, 
-					alloc->f[i].name, alloc->f[i].resume_offset);
+    		    printf("#%d 0x%x at %s+%d\n", i, alloc->f[i].resume_addr, alloc->f[i].name, alloc->f[i].resume_offset);
 			printf("\n");
 		}
 		alloc = incr(alloc);
