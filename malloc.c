@@ -66,32 +66,39 @@ void *sbrk(int nbytes)
     }
 }
 
+// Given a well-formatted header, puts redzones on either side of its payload
 void add_redzone(struct header *alloc){
 	((uint32_t *)alloc)[HEADER_SIZE / sizeof(uint32_t)] = 0xC0DE;
 	((uint32_t *)alloc)[(HEADER_SIZE + sizeof(uint32_t) + alloc->payload_size) / sizeof(uint32_t)] = 0xC0DE;
 }
 
+// Ensures that the redzones on the ends of alloc's payload are perserved
 int check_redzone(struct header *alloc){
 	uint32_t *int_alloc = (uint32_t *)alloc;
 	return int_alloc[HEADER_SIZE / sizeof(uint32_t)] + int_alloc[(HEADER_SIZE + alloc->payload_size + sizeof(uint32_t)) / sizeof(uint32_t)] - 2 * 0xC0DE;
 }
 
+// Returns the header after alloc
 struct header *incr(struct header *alloc){
 	uint32_t *temp = (uint32_t *)alloc;
 	temp += (HEADER_SIZE + alloc->payload_size + 2 * sizeof(uint32_t)) / sizeof(uint32_t);
 	return (struct header *)temp;
 }
 
+// Returns a pointer to the data referenced by alloc
 void *get_data(struct header *alloc){
 	uint32_t *temp = (uint32_t *)alloc;
 	temp += HEADER_SIZE / 4 + 1;
 	return temp;
 }
 
+// Returns the header pointing to the data at ptr
 struct header *get_header(void *ptr){
 	return (struct header *)((uint32_t *)ptr - 1 - HEADER_SIZE/sizeof(uint32_t));
 }
 
+// Prints a Mini-Valgrind Alert
+// Should happen whenever you try to free corrupted memory
 void memory_alert(struct header *alloc){
 	printf("\n=============================================\n");
 	printf(  " **********  Mini-Valgrind Alert  ********** \n");
@@ -105,7 +112,9 @@ void memory_alert(struct header *alloc){
         printf("#%d 0x%x at %s+%d\n", i, alloc->f[i].resume_addr, alloc->f[i].name, alloc->f[i].resume_offset);
 }
 
-void memory_report ()
+// Prints a Mini-Valgrind Report
+// Returns an int correrpsonding to the number of lost bytes
+int memory_report ()
 {
     printf("\n=============================================\n");
     printf(  "         Mini-Valgrind Memory Report         \n");
@@ -130,11 +139,13 @@ void memory_report ()
 		alloc = incr(alloc);
 	}
 	printf("Lost %d total bytes in %d block", byte_total, block_total);	
+	return byte_total;
 }
 
 /**
 * Given a contiguous chunk of free memory of size amt_free immediately following the header alloc, split
 * that memory into two pieces: one of size new size and one for whatever remains
+* Now also handles redzones
 */
 void *split(struct header *alloc, size_t amt_free, size_t new_size){
 	if(amt_free >= new_size + HEADER_SIZE + 4 * sizeof(uint32_t)) { // add a new header for the remaining memory
@@ -193,7 +204,7 @@ void free (void *ptr)
     struct header *alloc = get_header(ptr);
 	alloc->status = 0;
 
-	if(check_redzone(alloc) != 0) {
+	if(check_redzone(alloc) != 0) { // Don't free mishandled memory
 		memory_alert(alloc);
 		return;
 	}
