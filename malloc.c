@@ -18,6 +18,7 @@
 #include "printf.h"
 #include <stddef.h> // for NULL
 #include "strings.h"
+#include "backtrace.h"
 
 extern int __bss_end__;
 
@@ -30,6 +31,8 @@ extern int __bss_end__;
 struct header {
 	size_t payload_size;
 	int status;
+	int amt_leaked;
+	frame_t f[3];
 };
 #define HEADER_SIZE sizeof(struct header)
 /*
@@ -48,6 +51,10 @@ struct header {
 static void *heap_start = &__bss_end__;
 static void *heap_end = &__bss_end__;
 
+static int num_alloc = 0;
+static int num_frees = 0;
+static int num_bytes = 0;
+
 void *sbrk(int nbytes)
 {
     void *prev_end = heap_end;
@@ -59,18 +66,86 @@ void *sbrk(int nbytes)
     }
 }
 
+void add_redzone(struct header *alloc){
+	((uint32_t *)alloc)[1] = 0xC0DE;
+	((uint32_t *)alloc)[1 + alloc->payload_size / 8] = 0xC0DE;
+}
+
+int check_redzone(struct header *alloc){
+	uint32_t *int_alloc = (uint32_t *)alloc;
+	return int_alloc[HEADER_SIZE / sizeof(uint32_t)] + int_alloc[(HEADER_SIZE + alloc->payload_size) / sizeof(uint32_t)] - 2 * 0xC0DE;
+}
+
+struct header *incr(struct header *alloc){
+	uint32_t *temp = (uint32_t *)alloc;
+	temp += (HEADER_SIZE + alloc->payload_size) / 4 + 1;
+	return (struct header *)temp;
+}
+
+void *get_data(struct header *alloc){
+	uint32_t *temp = (uint32_t *)alloc;
+	temp += HEADER_SIZE / 4 + 1;
+	return temp;
+}
+
+void memory_alert(struct header *alloc){
+	printf("\n============================================\n");
+	printf(  " **********  Mini-Valgrind Alert  ********* \n");
+	printf(  "============================================\n");
+	printf("Attempt to free address %p that has damaged redzone(s): [%x] [%x]", 
+		alloc, 
+		((unsigned int *)alloc)[HEADER_SIZE / sizeof(int)], 
+		((unsigned int *)alloc)[(HEADER_SIZE + alloc->payload_size) / sizeof(int)]);
+	printf("Block of size %d bytes, allocated by", alloc->payload_size);
+    for (int i = 0; i < sizeof(alloc->f); i++)
+        printf("#%d 0x%x at %s+%d\n", i, alloc->f[i].resume_addr, alloc->f[i].name, alloc->f[i].resume_offset);
+}
+
+void memory_report (void)
+{
+    printf("\n=============================================\n");
+    printf(  "         Mini-Valgrind Memory Report         \n");
+    printf(  "=============================================\n");
+	printf("\n");
+	printf("malloc/free: %d	 allocs, %d frees, %d bytes allocated", num_alloc, num_frees, num_bytes);
+	
+	printf("\n");
+	
+	struct header *alloc = (struct header *)heap_start; 
+	int byte_total = 0;
+	int block_total = 0;
+	while(alloc < (struct header *)heap_end) {
+		if(check_redzone(alloc) == 0){
+			byte_total += alloc->payload_size;
+			block_total++;
+			printf("%d bytes are lost, allocated by", alloc->payload_size);
+    		for (int i = 0; i < sizeof(alloc->f); i++)
+    		    printf("#%d 0x%x at %s+%d\n", 
+					i, 
+					(unsigned int)alloc->f[i].resume_addr, 
+					alloc->f[i].name, alloc->f[i].resume_offset);
+			printf("\n");
+		}
+	}
+	printf("Lost %d total bytes in %d block", byte_total, block_total);	
+}
+
 /**
 * Given a contiguous chunk of free memory of size amt_free immediately following the header alloc, split
 * that memory into two pieces: one of size new size and one for whatever remains
 */
 void *split(struct header *alloc, size_t amt_free, size_t new_size){
-	alloc->payload_size = new_size;
 	alloc->status = 1;
-	if(amt_free - new_size > 0) { // add a new header for the remaining memory
-		alloc[(HEADER_SIZE + alloc->payload_size) / HEADER_SIZE].payload_size = amt_free - new_size - HEADER_SIZE;
-		free(alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE);
+	if(amt_free >= new_size - HEADER_SIZE - 2 * sizeof(uint32_t)) { // add a new header for the remaining memory
+		alloc->payload_size = new_size;
+		
+		incr(alloc)->payload_size = amt_free - new_size - HEADER_SIZE - 2 * sizeof(uint32_t);
+		free(incr(alloc));
+		add_redzone(incr(alloc));
+	} else {
+		alloc->payload_size = amt_free;
 	}
-	return alloc + 1;
+	return get_data(alloc);
 }
 
 // Simple macro to round up x to multiple of n.
@@ -83,34 +158,42 @@ void *malloc (size_t nbytes)
 	if(nbytes == 0) return NULL; // Don't need to allocate data
 
     nbytes = roundup(nbytes, 8);
+	num_bytes += nbytes;
+	num_alloc++;
 
 	// Search for an available slot in the existing heap
 	struct header *alloc = (struct header *)heap_start;
 	while(alloc < (struct header *)heap_end) {
 		if(alloc->status == 0 && alloc->payload_size >= nbytes)
 			return split(alloc, alloc->payload_size, nbytes);
-		alloc += (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
+		alloc = incr(alloc);
 	}	
 
 	// Worst case add a new block at the end
 	alloc = (struct header *)sbrk(nbytes + HEADER_SIZE);
 	alloc->payload_size = nbytes;
 	alloc->status = 1;
-	return alloc + 1;
+	return get_data(alloc);
 }
 
 void free (void *ptr)
 {
 	if(ptr == NULL) return; // Otherwise could free the top of memory
 
-    struct header *alloc = (struct header *)ptr - 1;
+	num_frees++;
+    struct header *alloc = (struct header *)((uint32_t *)ptr - 1 - HEADER_SIZE/sizeof(uint32_t));
 	alloc->status = 0;
-	
+
+	if(check_redzone(alloc) == 0) {
+		memory_alert(alloc);
+		return;
+	}
+
 	// Free all contiguous unused blocks
-	struct header *next_alloc = alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
+	struct header *next_alloc = incr(alloc);
 	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
 		alloc->payload_size += HEADER_SIZE + next_alloc->payload_size;
-		next_alloc += (HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE;
+		next_alloc = incr(next_alloc);
 	}	
 }
 
@@ -123,16 +206,16 @@ void *realloc (void *orig_ptr, size_t new_size)
 	}
 
 	new_size = roundup(new_size, 8);
-    struct header *alloc = (struct header *)orig_ptr - 1;
+    struct header *alloc = (struct header *)((uint32_t)orig_ptr - HEADER_SIZE / sizeof(uint32_t));
 
 	// Attempt to resize in place
 	size_t amt_free = alloc->payload_size;
-	struct header *next_alloc = alloc + (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
+	struct header *next_alloc = incr(alloc);
 	while(next_alloc < (struct header *)heap_end && next_alloc->status == 0){
-		amt_free += HEADER_SIZE + next_alloc->payload_size;
+		amt_free += HEADER_SIZE + next_alloc->payload_size + 2 * sizeof(uint32_t);
 		if(amt_free >= new_size)
 			return split(alloc, amt_free, new_size);
-		next_alloc += (HEADER_SIZE + next_alloc->payload_size) / HEADER_SIZE;
+		next_alloc = incr(next_alloc);
 	}	
 
 	// Worst case add a new block at the end
@@ -160,15 +243,7 @@ void heap_dump (const char *label)
 		printf("\n");
 
 		count++;
-		alloc += (HEADER_SIZE + alloc->payload_size) / HEADER_SIZE;
+		alloc = incr(alloc);
 	}	
     printf("----------  END DUMP (%s) ----------\n", label);
-}
-
-void memory_report (void)
-{
-    printf("\n=============================================\n");
-    printf(  "         Mini-Valgrind Memory Report         \n");
-    printf(  "=============================================\n");
-    // TODO: fill in for extension
 }
