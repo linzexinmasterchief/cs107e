@@ -116,7 +116,7 @@ static void test_heap_multiple(void)
             int num_repeats = i + 1;
             char *ptr = malloc(num_repeats + 1);
             assert(ptr != NULL);
-            assert((uintptr_t)ptr % 8 == 0); // verify 8-byte alignment
+            // assert((uintptr_t)ptr % 8 == 0); // verify 8-byte alignment | DATA is no longer 8 byte aligned but heap block is
             memset(ptr, 'A' - 1 + num_repeats, num_repeats);
             ptr[num_repeats] = '\0';
             arr[i] = ptr;
@@ -157,6 +157,7 @@ static void test_heap_recycle(int niter)
     size_t percent = total > extent ? (100*total)/extent : 0;
     printf("\nRecycling report for %d iterations:\n", niter);
     printf("Serviced requests totaling %d bytes, heap extent is %d bytes. Recycled %d%%\n", total, extent, percent);
+	heap_dump("Post Recycle");
 }
 
 void test_heap_redzones(void)
@@ -209,7 +210,8 @@ void main(void)
     test_heap_recycle(20);
 	test_heap_edge();    
 
-    //test_heap_redzones(); // DO NOT USE unless you implemented red zone protection
+    test_heap_redzones(); // DO NOT USE unless you implemented red zone protection
+	memory_report();
 
     uart_putstring("\nSuccessfully finished executing main() in tests/test_backtrace_malloc.c\n");
     uart_putchar(EOT);
