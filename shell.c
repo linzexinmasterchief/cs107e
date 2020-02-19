@@ -24,11 +24,13 @@ static char *strndup(const char *src, size_t n)
 	return dst;
 }
 
+// From Lab 4
 static bool isspace(char ch)
 {
     return ch == ' ' || ch == '\t' || ch == '\n';
 }
 
+// From Lab 4
 static int tokenize(const char *line, char *array[],  int max)
 {
     int ntokens = 0;

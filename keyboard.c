@@ -3,9 +3,11 @@
 #include "gpioextra.h"
 #include "keyboard.h"
 #include "ps2.h"
+#include "timer.h"
 
 static keyboard_modifiers_t mods;
 static unsigned int CLK, DATA;
+static const unsigned int MAX_DELAY = 3000;
 
 void keyboard_init(unsigned int clock_gpio, unsigned int data_gpio) 
 {
@@ -26,48 +28,21 @@ static int read_bit(void)
 	return gpio_read(DATA);
 }
 
-// unsigned char keyboard_read_scancode(void) 
-// {
-//     while(!read_bit()) {} // wait for start bit
-// 	unsigned char data = 0;
-// 	for(int i = 0; i < 8; i++)
-// 		data |= read_bit() << i;
-// 	read_bit();
-// 	read_bit();
-//     return data;
-// }
-
-// unsigned int read_scancode_helper(unsigned char *data){
-//     while(read_bit()) {} // wait for start bit
-// 
-// 	unsigned int count = 0; // keeps track of parity
-// 	for(int i = 0; i < 8; i++){
-// 		unsigned int next = read_bit(); 
-// 		count += next;
-// 	    *data |= next << i; // read (Little Endian) data
-// 	}
-// 
-// 	if((count + read_bit()) % 2 == 0) return 1; 
-// 	// if((count + read_bit()) % 2) return 1; // check parity
-// 	return read_bit(); // check stop bit
-// }
-// 
-// unsigned char keyboard_read_scancode(void) 
-// {
-// 	unsigned char data;
-// 	while(read_scancode_helper(&data)){}
-//     return data;
-// }
-
 unsigned char keyboard_read_scancode(void)
 {
 	unsigned char data = 0;
+	unsigned int start = 1;
 	while(1){
-		while(read_bit()) {}
-
+		while(start) start = read_bit();
+		unsigned int start_time = timer_get_ticks();
+	
 		unsigned int count = 0; // keeps track of parity
 		for(int i = 0; i < 8; i++){
 			unsigned int next = read_bit(); 
+			if(timer_get_ticks() - start_time > MAX_DELAY){ // handle dropped bits
+				start = next;
+				continue;
+			}
 			count += next;
 		    data |= (next << i); // read (Little Endian) data
 		}
@@ -82,17 +57,17 @@ key_action_t keyboard_read_sequence(void)
     key_action_t action;
     
 	unsigned char first_code = keyboard_read_scancode();
-	if(first_code == PS2_CODE_EXTENDED){
+	if(first_code == PS2_CODE_EXTENDED){ // ignore extended keys
 		first_code = keyboard_read_scancode(); 
 	}
 
-	if(first_code != PS2_CODE_RELEASE){
+	if(first_code != PS2_CODE_RELEASE){ // if event was a press
 		action.what = KEY_PRESS;
 		action.keycode = first_code;
 		return action;
 	}
 
-	action.what = KEY_RELEASE;
+	action.what = KEY_RELEASE; // if event was a release
 	action.keycode = keyboard_read_scancode();
     return action;
 }
