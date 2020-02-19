@@ -125,7 +125,7 @@ int cmd_poke(int argc, const char *argv[]) {
 	
 	int val = strtonum(argv[2], NULL);
 	if(val == 0){
-		shell_printf("error: peek cannot convert '%s'\n", val);
+		shell_printf("error: peek cannot convert '%s'\n", argv[2]);
 		return -4;
 	}
 
@@ -154,7 +154,9 @@ void shell_readline(char buf[], size_t bufsize)
 			buf[line_size] = '\0';
 			break;
 		} else if(next == '\b'){
-			if(line_size == 0) shell_bell();
+			if(line_size == 0) {
+				shell_bell();
+			}
 			else{
 				line_size--;
 
