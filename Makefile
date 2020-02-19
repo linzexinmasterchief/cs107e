@@ -1,6 +1,6 @@
 APPLICATION = apps/uart_shell.bin
 TEST = tests/test_keyboard.bin
-MY_MODULES = shell.o
+MY_MODULES = keyboard.o shell.o
 
 #  malloc.o backtrace.o printf.o strings.o gpio.o timer.o
 #  Can be added to MY_MODULES to use your own code

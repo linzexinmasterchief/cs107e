@@ -26,54 +26,73 @@ static int read_bit(void)
 	return gpio_read(DATA);
 }
 
-unsigned char keyboard_read_scancode(void) 
-{
-    while(!read_bit()) {} // wait for start bit
-	unsigned char data = 0;
-	for(int i = 0; i < 8; i++)
-		data |= read_bit() << i;
-	read_bit();
-	read_bit();
-    return data;
-}
+// unsigned char keyboard_read_scancode(void) 
+// {
+//     while(!read_bit()) {} // wait for start bit
+// 	unsigned char data = 0;
+// 	for(int i = 0; i < 8; i++)
+// 		data |= read_bit() << i;
+// 	read_bit();
+// 	read_bit();
+//     return data;
+// }
 
 // unsigned int read_scancode_helper(unsigned char *data){
-//     while(!read_bit()) {} // wait for start bit
+//     while(read_bit()) {} // wait for start bit
 // 
 // 	unsigned int count = 0; // keeps track of parity
-// 	for(int i = 0; i < sizeof(*data); i++){
+// 	for(int i = 0; i < 8; i++){
 // 		unsigned int next = read_bit(); 
-// 		if(next) count++; // increment parity
-// 	    data[0] |= next << i; // read (Little Endian) data
+// 		count += next;
+// 	    *data |= next << i; // read (Little Endian) data
 // 	}
 // 
-// 	if(!((count + read_bit()) % 2)) return 0; // check parity
+// 	if((count + read_bit()) % 2 == 0) return 1; 
+// 	// if((count + read_bit()) % 2) return 1; // check parity
 // 	return read_bit(); // check stop bit
 // }
 // 
 // unsigned char keyboard_read_scancode(void) 
 // {
-// 	unsigned char data[1];
-// 	while(read_scancode_helper(data)){}
-//     return *data;
+// 	unsigned char data;
+// 	while(read_scancode_helper(&data)){}
+//     return data;
 // }
+
+unsigned char keyboard_read_scancode(void)
+{
+	unsigned char data = 0;
+	while(1){
+		while(read_bit()) {}
+
+		unsigned int count = 0; // keeps track of parity
+		for(int i = 0; i < 8; i++){
+			unsigned int next = read_bit(); 
+			count += next;
+		    data |= (next << i); // read (Little Endian) data
+		}
+
+		if((count + read_bit()) % 2 == 0) continue; // checks parity
+		if(read_bit()) return data; // checks stop bit
+	}
+}
 
 key_action_t keyboard_read_sequence(void)
 {
     key_action_t action;
     
-	unsigned char break_code = keyboard_read_scancode();
-	if(break_code != PS2_CODE_RELEASE){
+	unsigned char first_code = keyboard_read_scancode();
+	if(first_code == PS2_CODE_EXTENDED){
+		first_code = keyboard_read_scancode(); 
+	}
+
+	if(first_code != PS2_CODE_RELEASE){
 		action.what = KEY_PRESS;
-		action.keycode = break_code;
+		action.keycode = first_code;
+		return action;
 	}
+
 	action.what = KEY_RELEASE;
-
-	unsigned char extend_code = keyboard_read_scancode();
-	if(extend_code != PS2_CODE_EXTENDED){
-		action.keycode = extend_code;
-	}
-
 	action.keycode = keyboard_read_scancode();
     return action;
 }
@@ -85,27 +104,27 @@ key_event_t keyboard_read_event(void)
 	event.key = ps2_keys[event.action.keycode];
 
 	// Handle conditional modifiers
-	if(event.action.keycode == PS2_KEY_SHIFT){
+	if(event.key.ch == PS2_KEY_SHIFT){
 		if(event.action.what == KEY_PRESS) mods |= KEYBOARD_MOD_SHIFT; // turn bit on
 		else mods &= ~KEYBOARD_MOD_SHIFT; // turn bit off
 	}
-	if(event.action.keycode == PS2_KEY_ALT){
+	if(event.key.ch == PS2_KEY_ALT){
 		if(event.action.what == KEY_PRESS) mods |= KEYBOARD_MOD_ALT;
 		else mods &= ~KEYBOARD_MOD_ALT;
 	}
-	if(event.action.keycode == PS2_KEY_CTRL){
+	if(event.key.ch == PS2_KEY_CTRL){
 		if(event.action.what == KEY_PRESS) mods |= KEYBOARD_MOD_CTRL;
 		else mods &= ~KEYBOARD_MOD_CTRL;
 	}
 
 	//Handle stick modifiers
-	if(event.action.keycode == PS2_KEY_CAPS_LOCK && event.action.what == KEY_PRESS){
+	if(event.key.ch == PS2_KEY_CAPS_LOCK && event.action.what == KEY_PRESS){
 		mods ^= KEYBOARD_MOD_CAPS_LOCK; // toggle bit	
 	}	
-	if(event.action.keycode == PS2_KEY_SCROLL_LOCK && event.action.what == KEY_PRESS){
+	if(event.key.ch == PS2_KEY_SCROLL_LOCK && event.action.what == KEY_PRESS){
 		mods ^= KEYBOARD_MOD_SCROLL_LOCK;
 	}	
-	if(event.action.keycode == PS2_KEY_NUM_LOCK && event.action.what == KEY_PRESS){
+	if(event.key.ch == PS2_KEY_NUM_LOCK && event.action.what == KEY_PRESS){
 		mods ^= KEYBOARD_MOD_NUM_LOCK;
 	}	
 
@@ -118,11 +137,19 @@ int is_letter(char ch){
 	return 'a' <= ch && ch <= 'z';
 }
 
+static const unsigned char MODS[] = {PS2_KEY_SHIFT, PS2_KEY_ALT, PS2_KEY_CTRL, PS2_KEY_CAPS_LOCK, PS2_KEY_SCROLL_LOCK, PS2_KEY_NUM_LOCK};
+static const int NUM_MODS = 6;
+
 unsigned char keyboard_read_next(void) 
 {
 	key_event_t event = keyboard_read_event();
-	if(event.key.other_ch == 0) return event.key.ch;
-    if(mods & KEYBOARD_MOD_SHIFT) return event.key.other_ch;
-	if(mods & KEYBOARD_MOD_CAPS_LOCK && is_letter(event.key.ch)) return event.key.other_ch;
-	return '!';
+	if(event.action.what == KEY_RELEASE) return keyboard_read_next(); // ignore key releases
+	for(int i = 0; i < NUM_MODS; i++){ // ignore modifiers
+		if(event.key.ch == MODS[i])
+			return keyboard_read_next();
+	}
+	if(event.key.other_ch == 0) return event.key.ch; // just return if there's no other option
+    if(mods & KEYBOARD_MOD_SHIFT) return event.key.other_ch; // shift takes precedence
+	if(mods & KEYBOARD_MOD_CAPS_LOCK && is_letter(event.key.ch)) return event.key.other_ch; // finally caps lock
+	return event.key.ch;
 }

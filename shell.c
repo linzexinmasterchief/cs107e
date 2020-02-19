@@ -81,6 +81,7 @@ int cmd_help(int argc, const char *argv[])
 }
 
 int cmd_reboot(int argc, const char *argv[]){
+	uart_putchar(EOT);
 	pi_reboot();
 	return 0;
 }
