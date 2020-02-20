@@ -1,27 +1,27 @@
-APPLICATION = apps/uart_shell.bin
-TEST = tests/test_keyboard.bin
-MY_MODULES = keyboard.o shell.o
+APPLICATION = apps/console_shell.bin
+TEST = tests/test_gl_console.bin
+MY_MODULES = console.o gl.o fb.o
 
-#  malloc.o backtrace.o printf.o strings.o gpio.o timer.o
+#  shell.o keyboard.o malloc.o backtrace.o printf.o strings.o gpio.o timer.o
 #  Can be added to MY_MODULES to use your own code
 
-# MY_MODULES is a list of those library modules (such as gpio.o)
+# MY_MODULES is a list of those library modules (such as gpio.o) 
 # for which you intend to use your own code. The reference implementation
 # from our libraries will be used for any module you do not name in this list.
-# Editing this list allows you to control whether the application being
-# built is using your code or the reference implementation for each module
+# Editing this list allows you to control whether the application being 
+# built is using your code or the reference implementation for each module 
 # on a per-module basis. Great for testing!
-# NOTE: when you name a module in this list, it must provide definitions
-# for all of the symbols in the entire module. For example, if you list
-# gpio.o as one of your modules, your gpio.o must define gpio_set_function,
-# gpio_get_function, ... and so on for all functions declared in the gpio.h
-# header file. If your module forgets to implement any of the needed
-# functions, the linker will bring in gpio.o from reference libpi to
+# NOTE: when you name a module in this list, it must provide definitions 
+# for all of the symbols in the entire module. For example, if you list 
+# gpio.o as one of your modules, your gpio.o must define gpio_set_function, 
+# gpio_get_function, ... and so on for all functions declared in the gpio.h 
+# header file. If your module forgets to implement any of the needed 
+# functions, the linker will bring in gpio.o from reference libpi to 
 # resolve the missing definition. But you can't have both gpio.o modules!
 # The linker will report multiple definition errors for every function
-# that occurs in both your gpio.o and the reference gpio.o. No bueno!
+# that occurs in both your gpio.o and the reference gpio.o. No bueno! 
 
-CFLAGS = -I$(CS107E)/include -g -Wall -Og -std=c99 -ffreestanding
+CFLAGS = -I$(CS107E)/include -g -Wall -Og -std=c99 -ffreestanding 
 CFLAGS += -mapcs-frame -fno-omit-frame-pointer -mpoke-function-name -Wpointer-arith
 LDFLAGS = -nostdlib -T memmap -L$(CS107E)/lib
 LDLIBS = -lpi -lgcc
