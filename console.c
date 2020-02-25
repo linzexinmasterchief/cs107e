@@ -39,9 +39,10 @@ static void increment(int amt){
 	} else {
 		if(curr_x + amt >= MAX_COLS && curr_y == MAX_ROWS - 1){ // vertical wrapping
 			for(int r = 0; r < MAX_ROWS - 1; r++){
-				memcpy(contents + r * MAX_ROWS, contents + (r + 1) * MAX_ROWS, MAX_COLS);
+				memcpy(contents + r * MAX_COLS, contents + (r + 1) * MAX_COLS, MAX_COLS);
 				// memcpy(contents[r], contents[r + 1], MAX_COLS);
 			}
+			for(int i = (MAX_ROWS - 1) * MAX_COLS; i < MAX_ROWS * MAX_COLS; i++) memcpy(contents + i, " ", MAX_COLS);
 		} else curr_y += (curr_x + amt) / MAX_COLS; // regular horizontal
 		curr_x = (curr_x + amt) % MAX_COLS; // horizontal wrapping
 	}
