@@ -22,11 +22,62 @@ void test_fb(void)
     unsigned char *cptr = fb_get_draw_buffer();
     int nbytes = fb_get_pitch()*fb_get_height();
     memset(cptr, 0x99, nbytes); // fill entire framebuffer with light gray pixels
-    timer_delay(3);
+    timer_delay(1);
+
+	memset(cptr, 0x49, nbytes / 2); // fill bottom half of buffer with lighter gray pixels
+	timer_delay(1);
+
+	memset(cptr + nbytes / 2, 0x25, nbytes / 2); // fill top half with super light gray pixels
+	timer_delay(1);
+
+	memset(cptr, 0x0, nbytes); // make the whole screen black
+	timer_delay(1);
+
+	// Now with double buffering
+    fb_init(700, 700, 4, FB_DOUBLEBUFFER);
+
+    cptr = fb_get_draw_buffer();
+    nbytes = fb_get_pitch()*fb_get_height();
+    memset(cptr, 0x99, nbytes); // fill entire framebuffer with light gray pixels
+	fb_swap_buffer();
+    timer_delay(1);
+
+	cptr = fb_get_draw_buffer();
+	memset(cptr, 0x49, nbytes / 2); // fill bottom half of buffer with lighter gray pixels
+	fb_swap_buffer();
+	timer_delay(1);
+
+	cptr = fb_get_draw_buffer();
+	memset(cptr + nbytes / 2, 0x25, nbytes / 2); // fill top half with super light gray pixels
+	fb_swap_buffer();
+	timer_delay(1);
+
+	cptr = fb_get_draw_buffer();
+	memset(cptr, 0x0, nbytes); // make the whole screen black
+	fb_swap_buffer();
+	timer_delay(1);
 }
 
 void test_gl(void)
 {
+    // Single  buffer mode
+    gl_init(_WIDTH, _HEIGHT, GL_SINGLEBUFFER);
+
+    // Background is ?
+    gl_clear(gl_color(0x45, 0x60, 0x75));
+
+    // Draw white pixel at an arbitrary spot
+    gl_draw_pixel(_WIDTH - 1, _HEIGHT - 1, GL_WHITE);
+    assert(gl_read_pixel(_WIDTH - 1, _HEIGHT - 1) == GL_WHITE);
+
+    // Blue rectangle in corner of screen
+    gl_draw_rect(0, 0, 100, 100, GL_BLUE);
+
+    // Single clipped magenta character
+    gl_draw_char(_WIDTH - 5, 0, 'A', GL_MAGENTA);
+
+    timer_delay(1); // time to visually confirm
+
     // Double buffer mode, make sure you test single buffer too!
     gl_init(_WIDTH, _HEIGHT, GL_DOUBLEBUFFER);
 
@@ -45,7 +96,15 @@ void test_gl(void)
 
     // Show buffer with drawn contents
     gl_swap_buffer();
-    timer_delay(3);
+    timer_delay(1); // visually confirm
+
+	// Draw black string on white background
+	gl_clear(GL_WHITE);
+	gl_draw_string(60, 10, 	"You don't wanna know what time it is", GL_BLACK);
+	
+	// Show buffer with drawn contents
+	gl_swap_buffer();
+	timer_delay(1); // visually confirm
 }
 
 void test_console(void)
@@ -68,15 +127,6 @@ void test_console(void)
     console_printf("Goodbye!\n");
 }
 
-/* TODO: Add tests to test your graphics library and console.
-   For the graphics library, test both single & double
-   buffering and confirm all drawing is clipeed to bounds
-   of framebuffer
-   For the console, make sure to test wrap-around and scrolling.
-   Be sure to test each module separately as well as in combination
-   with others.
-*/
-
 void main(void)
 {
     uart_init();
@@ -86,7 +136,7 @@ void main(void)
     test_fb();
     test_gl();
     test_console();
-
+	
     printf("Completed main() in test_gl_console.c\n");
     uart_putchar(EOT);
 }

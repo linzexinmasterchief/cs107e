@@ -42,15 +42,14 @@ void fb_init(unsigned int width, unsigned int height, unsigned int depth_in_byte
 
 void fb_swap_buffer(void)
 {
-	if( fb.height == fb.virtual_height ) return; // SINGLE mode
-	fb.y_offset ^= fb.height; // switch the offset
+	fb.y_offset ^= (fb.virtual_height - fb.height); // switch the offset
     mailbox_write(MAILBOX_FRAMEBUFFER, (unsigned int)&fb); // write new buffer
     mailbox_read(MAILBOX_FRAMEBUFFER); // clear mailbox
 }
 
 void* fb_get_draw_buffer(void)
 {
-    return ((char *)fb.framebuffer) + fb_get_pitch() * fb.y_offset;
+    return ((char *)fb.framebuffer) + fb_get_pitch() * (fb.y_offset ^ (fb.virtual_height - fb.height));
 }
 
 unsigned int fb_get_width(void)
@@ -70,6 +69,6 @@ unsigned int fb_get_depth(void)
 
 unsigned int fb_get_pitch(void)
 {
-    return fb_get_width() * fb_get_depth();
+    return fb.pitch;
 }
 
