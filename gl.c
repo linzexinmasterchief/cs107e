@@ -137,8 +137,33 @@ void gl_draw_line(int x1, int y1, int x2, int y2, color_t c){
 	}
 }
 
+// Formula for area of a triangle given points found at
+// www.mathopenref.com/coordtrianglearea.html/ memcpy(contents[r], contents[r + 1], MAX_COLS);
+double area(int x1, int y1, int x2, int y2, int x3, int y3){
+	float a = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
+	a = (a < 0) ? -a : a;
+	return a /2.;
+}
+
+// Idea to use area came from http://mathworld.wolfram.com/TriangleInterior.html
+// Substituted determinants for area here
+int in_triangle(int x, int y, int x1, int y1, int x2, int y2, int x3, int y3){
+	double full_area = area(x1, y1, x2, y2, x3, y3);
+	double area_1 = area(x, y, x2, y2, x3, y3);
+	double area_2 = area(x1, y1, x, y, x3, y3);
+	double area_3 = area(x1, y1, x2, y2, x, y);
+	return full_area - (area_1 + area_2 + area_3) == 0;
+}
+
 void gl_draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, color_t c){
 	gl_draw_line(x1, y1, x2, y2, c);
 	gl_draw_line(x2, y2, x3, y3, c);
 	gl_draw_line(x3, y3, x1, y1, c);
+
+	for(int x = 0; x < width(); x++){
+		for(int y = 0; y < gl_get_height(); y++){
+			if(in_triangle(x, y, x1, y1, x2, y2, x3, y3))
+				gl_draw_pixel(x, y, c);
+		}
+	}
 }
