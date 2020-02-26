@@ -23,10 +23,6 @@ void console_init(unsigned int nrows, unsigned int ncols)
 
 	contents = malloc(MAX_ROWS * MAX_COLS);
 	for(int i = 0; i < MAX_ROWS * MAX_COLS; i++) memcpy(contents + i, " ", MAX_ROWS * MAX_COLS);
-	// contents = malloc(nrows * sizeof(char *));
-	// for(int i = 0; i < MAX_ROWS; i++){
-	// 	contents[i] = malloc(MAX_COLS);
-	// }
 }
 
 /**
@@ -40,7 +36,6 @@ static void increment(int amt){
 		if(curr_x + amt >= MAX_COLS && curr_y == MAX_ROWS - 1){ // vertical wrapping
 			for(int r = 0; r < MAX_ROWS - 1; r++){
 				memcpy(contents + r * MAX_COLS, contents + (r + 1) * MAX_COLS, MAX_COLS);
-				// memcpy(contents[r], contents[r + 1], MAX_COLS);
 			}
 			for(int i = (MAX_ROWS - 1) * MAX_COLS; i < MAX_ROWS * MAX_COLS; i++) memcpy(contents + i, " ", MAX_COLS);
 		} else curr_y += (curr_x + amt) / MAX_COLS; // regular horizontal

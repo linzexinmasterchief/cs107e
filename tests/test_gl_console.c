@@ -127,15 +127,36 @@ void test_console(void)
     console_printf("Goodbye!\n");
 }
 
+void test_triangle(void){
+    gl_init(_WIDTH, _HEIGHT, GL_SINGLEBUFFER);
+	gl_clear(GL_BLACK);
+
+	// test draw line
+	// gl_draw_line(_WIDTH / 2, 0, _WIDTH / 2, _HEIGHT, GL_WHITE);
+	// gl_swap_buffer();
+	// timer_delay(3);
+	// gl_draw_line(0, _HEIGHT / 2, _WIDTH, _HEIGHT / 2, GL_WHITE);
+	// gl_swap_buffer();
+	// timer_delay(3);
+	gl_draw_line(0, 0, _WIDTH, _HEIGHT, GL_WHITE);
+	gl_draw_line(_WIDTH, 0, 0, _HEIGHT, GL_WHITE);
+	timer_delay(3);
+
+	// test draw triangle
+	gl_draw_triangle(_WIDTH / 2, 0, 0, _HEIGHT - 1, _WIDTH - 1, _HEIGHT - 1, GL_AMBER);  
+	timer_delay(3);
+}
+
 void main(void)
 {
     uart_init();
     timer_init();
     printf("Executing main() in test_gl_console.c\n");
 
-    test_fb();
-    test_gl();
-    test_console();
+    // test_fb();
+    // test_gl();
+    // test_console();
+	test_triangle();
 	
     printf("Completed main() in test_gl_console.c\n");
     uart_putchar(EOT);

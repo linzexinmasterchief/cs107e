@@ -96,3 +96,49 @@ unsigned int gl_get_char_width(void)
 {
     return font_get_width();
 }
+
+#define abs(a) ((a > 0) ? (a) : (-a)) // This doesn't work, could you please tell me why?
+// This implementation is based on the pseudocode for Bresenham's algorithm available on Wikipedia
+// en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+void gl_draw_line(int x1, int y1, int x2, int y2, color_t c){
+	int dx = (x2 - x1 > 0) ? x2 - x1 : x1 - x2; // x displacement
+	int sx = x1 < x2 ? 1 : -1; // left or right
+	int dy = (y2 - y1 < 0) ? y2 - y1 : y1 - y2; // y displacement
+	int sy = y1 < y2 ? 1 : -1; // down or up
+	int err = dx + dy; // total error
+
+	// special cases
+	if(y1 == y2){
+		for(; x1 != x2; x1+=sx) 
+			if(x1 < width() && y1 < gl_get_height()) gl_draw_pixel(x1, y1, c); 
+		return;
+	}
+	if(x1 == x2){
+		for(; y1 != y2; y1+=sy) 
+			if(x1 < width() && y1 < gl_get_height()) gl_draw_pixel(x1, y1, c); 
+		return;
+	}
+	
+	while(1){
+		if(x1 < width() && y1 < gl_get_height()) gl_draw_pixel(x1, y1, c); 
+		if(x1 == x2 && y1 == y2) {
+			break; // We're done!
+		}
+	
+		int e2 = 2 * err;
+		if(e2 <= dx){ // threshold for incrementing y1
+			err += dx;
+			y1 += sy;
+		}
+		if(e2 >= dy){ // threshold for incrementing x1
+			err += dy;
+			x1 += sx;
+		}
+	}
+}
+
+void gl_draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, color_t c){
+	gl_draw_line(x1, y1, x2, y2, c);
+	gl_draw_line(x2, y2, x3, y3, c);
+	gl_draw_line(x3, y3, x1, y1, c);
+}
