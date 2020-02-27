@@ -1,32 +1,26 @@
-APPLICATION = apps/console_shell.bin
-TEST = tests/test_gl_console.bin
-MY_MODULES = console.o gl.o fb.o
+APPLICATION = apps/interrupts_console_shell.bin
+TEST = tests/test_keyboard_interrupts.bin
 
-#  shell.o keyboard.o malloc.o backtrace.o printf.o strings.o gpio.o timer.o
-#  Can be added to MY_MODULES to use your own code
 
-# MY_MODULES is a list of those library modules (such as gpio.o) 
-# for which you intend to use your own code. The reference implementation
-# from our libraries will be used for any module you do not name in this list.
-# Editing this list allows you to control whether the application being 
-# built is using your code or the reference implementation for each module 
-# on a per-module basis. Great for testing!
-# NOTE: when you name a module in this list, it must provide definitions 
-# for all of the symbols in the entire module. For example, if you list 
-# gpio.o as one of your modules, your gpio.o must define gpio_set_function, 
-# gpio_get_function, ... and so on for all functions declared in the gpio.h 
-# header file. If your module forgets to implement any of the needed 
-# functions, the linker will bring in gpio.o from reference libpi to 
-# resolve the missing definition. But you can't have both gpio.o modules!
-# The linker will report multiple definition errors for every function
-# that occurs in both your gpio.o and the reference gpio.o. No bueno! 
+# This is the list of your modules that will be used when 
+# buliding the console application and libmypi.a library
+# To be considered for system bonus, MY_MODULES must name all of your modules
+# If you have unresolved issues with a module, you can remove it and the
+# reference module will be used instead (no system bonus, though)
+#
+# *** Before you submit, be sure MY_MODULES is set correctly for the 
+#     configuration you want to use when grading your work!!!
+
+MY_MODULES = timer.o gpio.o strings.o printf.o backtrace.o malloc.o keyboard.o shell.o fb.o gl.o console.o
 
 CFLAGS = -I$(CS107E)/include -g -Wall -Og -std=c99 -ffreestanding 
 CFLAGS += -mapcs-frame -fno-omit-frame-pointer -mpoke-function-name -Wpointer-arith
 LDFLAGS = -nostdlib -T memmap -L$(CS107E)/lib
-LDLIBS = -lpi -lgcc
+LDLIBS  = -lpi -lgcc
 
 all : $(MY_MODULES) $(APPLICATION) $(TEST)
+
+lib: libmypi.a
 
 %.bin: %.elf
 	arm-none-eabi-objcopy $< -O binary $@
@@ -40,6 +34,10 @@ all : $(MY_MODULES) $(APPLICATION) $(TEST)
 %.o: %.s
 	arm-none-eabi-as $(ASFLAGS) $< -o $@
 
+libmypi.a: $(MY_MODULES) Makefile
+	rm -f $@
+	arm-none-eabi-ar cDr $@ $(filter %.o,$^)
+
 %.list: %.o
 	arm-none-eabi-objdump --no-show-raw-insn -d $< > $@
 
@@ -50,13 +48,13 @@ test: $(TEST)
 	rpi-install.py -p $<
 
 clean:
-	rm -f *.o *.bin *.elf *.list *~
+	rm -f *.o *.bin *.elf *.list *~ libmypi.a
 	rm -f apps/*.o apps/*.bin apps/*.elf apps/*.list apps/*~
 	rm -f tests/*.o tests/*.bin tests/*.elf tests/*.list tests/*~
 
 .PHONY: all clean install test
 
-.PRECIOUS: %.elf %.o
+.PRECIOUS: %.elf %.o %.a
 
 # empty recipe used to disable built-in rules for native build
 %:%.c
