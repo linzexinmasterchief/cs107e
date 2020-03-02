@@ -4,22 +4,66 @@
 #include "keyboard.h"
 #include "ps2.h"
 #include "timer.h"
+#include "interrupts.h"
+#include "uart.h"
+#include "ringbuffer.h"
 
 static keyboard_modifiers_t mods;
 static unsigned int CLK, DATA;
 static const unsigned int MAX_DELAY = 3000;
 
-void keyboard_init(unsigned int clock_gpio, unsigned int data_gpio) 
-{
-    CLK = clock_gpio;
-    gpio_set_input(CLK);
-    gpio_set_pullup(CLK);
- 
-    DATA = data_gpio;
-    gpio_set_input(DATA);
-    gpio_set_pullup(DATA);
-}
+// made vars global for interrupts
+static int bitcount = 0; // number of bits read thus far
+static unsigned int start_time; // time of last start code
+static unsigned int parity_count = 0; // current parity on data bits
+static unsigned char curr_code = 0; // scancode being currently parsed
+static rb_t *codes; // queue housing all scancodes
 
+/*
+* Event handler for falling clock edge on PS2 keyboard
+*/
+void clock_edge(){
+	if(gpio_check_and_clear_event(CLK)){
+		if(bitcount == 0) { // Read start bit (low)
+			if(!gpio_read(DATA)) { 
+				bitcount++; 
+				start_time = timer_get_ticks(); // account for delay between bits
+			}
+			return;
+		}
+	
+		if(bitcount < 9){ // Read data bits
+			if(timer_get_ticks() - start_time > MAX_DELAY){ // handle dropped bits
+				curr_code = 0;
+				bitcount = 0;
+			} else{
+				unsigned int next = gpio_read(DATA);	
+				parity_count += next; // update current code parity
+		    	curr_code |= (next << (bitcount - 1)); // read (Little Endian) data
+				bitcount++;
+			}
+			return;
+		}
+
+		if(bitcount == 9){ // Read parity bit
+			if((parity_count + gpio_read(DATA)) % 2 == 0) { // using odd parity
+				curr_code = 0;
+				bitcount = 0;
+			} else{
+				bitcount++;
+			}
+			return;
+		}
+
+		if(gpio_read(DATA)){ // Read stop bit (high)
+		    if(!rb_enqueue(codes, curr_code)) uart_putchar('X');
+		}
+		
+		// Get ready for next character
+		curr_code = 0;
+		bitcount = 0; 
+	}
+}
 
 static int read_bit(void) 
 {
@@ -55,8 +99,10 @@ unsigned char keyboard_read_scancode(void)
 key_action_t keyboard_read_sequence(void)
 {
     key_action_t action;
-    
-	unsigned char first_code = keyboard_read_scancode();
+	int int_code;
+    while(!rb_dequeue(codes, &int_code)) {/* spin */}
+	unsigned char first_code = (unsigned char)int_code;
+
 	if(first_code == PS2_CODE_EXTENDED){ // ignore extended keys
 		first_code = keyboard_read_scancode(); 
 	}
@@ -128,3 +174,19 @@ unsigned char keyboard_read_next(void)
 	if(mods & KEYBOARD_MOD_CAPS_LOCK && is_letter(event.key.ch)) return event.key.other_ch; // finally caps lock
 	return event.key.ch;
 }
+
+void keyboard_init(unsigned int clock_gpio, unsigned int data_gpio) 
+{
+    CLK = clock_gpio;
+    gpio_set_input(CLK);
+    gpio_set_pullup(CLK);
+	gpio_enable_event_detection(CLK, GPIO_DETECT_FALLING_EDGE); 
+	interrupts_attach_handler((handler_fn_t)clock_edge, INTERRUPTS_GPIO3);
+
+    DATA = data_gpio;
+    gpio_set_input(DATA);
+    gpio_set_pullup(DATA);
+
+	codes = rb_new();
+}
+

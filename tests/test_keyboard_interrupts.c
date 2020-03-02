@@ -40,13 +40,14 @@ void test_read_delay(void)
 
 void main(void)
 {
+	interrupts_init();
     gpio_init();
     timer_init();
     uart_init();
     keyboard_init(KEYBOARD_CLOCK, KEYBOARD_DATA);
+	interrupts_global_enable(); // should come last to avoid messing up inits
 
-
-    test_clock_events();  // wait 10 seconds for clock_edge handler to report clock edges
-    //test_read_delay();  // what happens to keys typed while main program blocked in delay?
+    // test_clock_events();  // wait 10 seconds for clock_edge handler to report clock edges
+    test_read_delay();  // what happens to keys typed while main program blocked in delay?
     uart_putchar(EOT);
 }
