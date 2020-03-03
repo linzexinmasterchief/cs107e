@@ -55,7 +55,8 @@ unsigned int gpio_get_function(unsigned int pin) {
  	filter &= *curr_reg;
 	filter >>= (3 * (pin % 10));
 
-	return binary_to_decimal(filter);
+	return filter;
+	// return binary_to_decimal(filter);
 }
 
 void gpio_set_input(unsigned int pin) {
@@ -93,5 +94,6 @@ unsigned int gpio_read(unsigned int pin) {
 	}				                                                           		
 	
 	filter >>= pin;
-	return binary_to_decimal(filter);
+	return filter;
+	// return binary_to_decimal(filter);
 }   				                                                           		
