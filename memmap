@@ -1,6 +1,9 @@
 SECTIONS
 {
+	__text_start__ = .;
     .text 0x8000 :  { start.o(.text*)  *(.text*) }
+	__text_end__ = ALIGN(8);
+
     .data :         { *(.data*) }
     .rodata :       { *(.rodata*) }
 

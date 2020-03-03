@@ -5,6 +5,7 @@
 #include "malloc.h"
 #include "strings.h"
 #include "pi.h"
+#include "gprof.h"
 
 #define LINE_LEN 80
 
@@ -52,7 +53,8 @@ static const command_t commands[] = {
     {"echo",   "<...> echos the user input to the screen", cmd_echo},
 	{"reboot", "reboot the Raspberry Pi back to the bootloader using `pi_reboot", cmd_reboot},
 	{"peek", "<address> prints the contents (4 bytes) of memory at address", cmd_peek},
-	{"poke", "<address> <value> stores `value` into the memory at `address`", cmd_poke}
+	{"poke", "<address> <value> stores `value` into the memory at `address`", cmd_poke},
+	{"profile", "[on | off | status | results] tool that tracks where in the code a program is spending its execution time", cmd_profile}
 };
 
 int cmd_echo(int argc, const char *argv[]) 
@@ -133,6 +135,39 @@ int cmd_poke(int argc, const char *argv[]) {
 
 	*(unsigned int *)addr = val;
 	return 0;
+}
+
+int cmd_profile(int argc, const char *argv[]) {
+	if(argc != 2){
+		shell_printf("error: requires additional arguments [on | off | status | results]");
+		return -7;
+	}
+
+	if(strcmp(argv[1], "on")){
+		gprof_on();
+		return 0;
+	}
+
+	if(strcmp(argv[1], "off")){
+		gprof_off();
+		return 0;
+	} 
+
+	if(strcmp(argv[1], "status")){
+		if(gprof_is_active()){
+			shell_printf("Status: on\n");
+		} else {
+			shell_printf("Status: off\n");
+		}
+		return 0;
+	}	
+
+	if(strcmp(argv[1], "results")){
+		gprof_dump(); // prints to console
+		return 0;
+	}
+
+	return -8;
 }
 
 void shell_init(formatted_fn_t print_fn)

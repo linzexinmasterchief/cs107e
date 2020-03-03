@@ -22,14 +22,14 @@ static rb_t *codes; // queue housing all scancodes
 /*
 * Event handler for falling clock edge on PS2 keyboard
 */
-void clock_edge(){
+bool clock_edge(unsigned int pc){
 	if(gpio_check_and_clear_event(CLK)){
 		if(bitcount == 0) { // Read start bit (low)
 			if(!gpio_read(DATA)) { 
 				bitcount++; 
 				start_time = timer_get_ticks(); // account for delay between bits
 			}
-			return;
+			return true;
 		}
 	
 		if(bitcount < 9){ // Read data bits
@@ -42,7 +42,7 @@ void clock_edge(){
 		    	curr_code |= (next << (bitcount - 1)); // read (Little Endian) data
 				bitcount++;
 			}
-			return;
+			return true;
 		}
 
 		if(bitcount == 9){ // Read parity bit
@@ -52,7 +52,7 @@ void clock_edge(){
 			} else{
 				bitcount++;
 			}
-			return;
+			return true;
 		}
 
 		if(gpio_read(DATA)){ // Read stop bit (high)
@@ -63,6 +63,8 @@ void clock_edge(){
 		curr_code = 0;
 		bitcount = 0; 
 	}
+	
+	return false;
 }
 
 static int read_bit(void) 
@@ -99,12 +101,14 @@ unsigned char keyboard_read_scancode(void)
 key_action_t keyboard_read_sequence(void)
 {
     key_action_t action;
+
 	int int_code;
     while(!rb_dequeue(codes, &int_code)) {/* spin */}
 	unsigned char first_code = (unsigned char)int_code;
 
 	if(first_code == PS2_CODE_EXTENDED){ // ignore extended keys
-		first_code = keyboard_read_scancode(); 
+    	while(!rb_dequeue(codes, &int_code)) {/* spin */}
+		first_code = (unsigned char)int_code;
 	}
 
 	if(first_code != PS2_CODE_RELEASE){ // if event was a press
@@ -114,7 +118,8 @@ key_action_t keyboard_read_sequence(void)
 	}
 
 	action.what = KEY_RELEASE; // if event was a release
-	action.keycode = keyboard_read_scancode();
+    while(!rb_dequeue(codes, &int_code)) {/* spin */}
+	action.keycode = (unsigned char)int_code;
     return action;
 }
 
