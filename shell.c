@@ -47,7 +47,7 @@ static int tokenize(const char *line, char *array[],  int max)
     return ntokens;
 }
 
-static const int NUM_COMMANDS = 5;
+static const int NUM_COMMANDS = 6;
 static const command_t commands[] = {
     {"help",   "<cmd> prints a list of commands or description of cmd", cmd_help},
     {"echo",   "<...> echos the user input to the screen", cmd_echo},
@@ -139,21 +139,21 @@ int cmd_poke(int argc, const char *argv[]) {
 
 int cmd_profile(int argc, const char *argv[]) {
 	if(argc != 2){
-		shell_printf("error: requires additional arguments [on | off | status | results]");
+		shell_printf("error: requires additional arguments [on | off | status | results]\n");
 		return -7;
 	}
 
-	if(strcmp(argv[1], "on")){
+	if(strcmp(argv[1], "on") == 0){
 		gprof_on();
 		return 0;
 	}
 
-	if(strcmp(argv[1], "off")){
+	if(strcmp(argv[1], "off") == 0){
 		gprof_off();
 		return 0;
 	} 
 
-	if(strcmp(argv[1], "status")){
+	if(strcmp(argv[1], "status") == 0){
 		if(gprof_is_active()){
 			shell_printf("Status: on\n");
 		} else {
@@ -162,7 +162,7 @@ int cmd_profile(int argc, const char *argv[]) {
 		return 0;
 	}	
 
-	if(strcmp(argv[1], "results")){
+	if(strcmp(argv[1], "results") == 0){
 		gprof_dump(); // prints to console
 		return 0;
 	}
