@@ -20,6 +20,7 @@ void main(void)
     keyboard_init(KEYBOARD_CLOCK, KEYBOARD_DATA);
 	gprof_init();
     console_init(NROWS, NCOLS);
+	// shell_init(printf);
     shell_init(console_printf);
     interrupts_global_enable(); // everything fully initialized, now turn on interrupts
 

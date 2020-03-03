@@ -8,7 +8,7 @@
 
 int unsigned_to_base(char *buf, size_t bufsize, unsigned int val, int base, int min_width)
 {
-	return signed_to_base(buf, bufsize, val, base, min_width);
+	return signed_to_base(buf, bufsize, (unsigned int)val, base, min_width);
 }
 
 int signed_to_base(char *buf, size_t bufsize, int val, int base, int min_width)
