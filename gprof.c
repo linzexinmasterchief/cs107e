@@ -21,8 +21,8 @@ void gprof_on(void)
 		num_insn = (__text_end__ - __text_start__) / 4; // 4 bytes per instruction
 		counters = (int *)malloc(num_insn); 
 	}
-	// uart_putchar('x');
-	printf("%d - %d = 4 * %d", __text_end__, __text_start__, num_insn);
+	uart_putchar('x');
+	printf("%x - %x = 4 * %x", __text_end__, __text_start__, num_insn);
 	for(int i = 0; i < num_insn; i++) {
 		counters[i] = 0; // zero out counters
 	}

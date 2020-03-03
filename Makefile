@@ -11,7 +11,7 @@ TEST = tests/test_keyboard_interrupts.bin
 # *** Before you submit, be sure MY_MODULES is set correctly for the 
 #     configuration you want to use when grading your work!!!
 
-MY_MODULES = keyboard.o gprof.o shell.o console.o gl.o fb.o malloc.o backtrace.o strings.o#timer.o gpio.o strings.o printf.o backtrace.o malloc.o keyboard.o shell.o fb.o gl.o console.o
+MY_MODULES = keyboard.o gprof.o shell.o console.o gl.o fb.o malloc.o backtrace.o strings.o printf.o timer.o#timer.o gpio.o strings.o printf.o backtrace.o malloc.o keyboard.o shell.o fb.o gl.o console.o
 
 CFLAGS = -I$(CS107E)/include -g -Wall -Og -std=c99 -ffreestanding 
 CFLAGS += -mapcs-frame -fno-omit-frame-pointer -mpoke-function-name -Wpointer-arith

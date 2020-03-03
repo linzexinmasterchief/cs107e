@@ -51,7 +51,7 @@ static const int NUM_COMMANDS = 6;
 static const command_t commands[] = {
     {"help",   "<cmd> prints a list of commands or description of cmd", cmd_help},
     {"echo",   "<...> echos the user input to the screen", cmd_echo},
-	{"reboot", "reboot the Raspberry Pi back to the bootloader using `pi_reboot", cmd_reboot},
+	{"reboot", "reboot the Raspberry Pi back to the bootloader using `pi_reboot'", cmd_reboot},
 	{"peek", "<address> prints the contents (4 bytes) of memory at address", cmd_peek},
 	{"poke", "<address> <value> stores `value` into the memory at `address`", cmd_poke},
 	{"profile", "[on | off | status | results] tool that tracks where in the code a program is spending its execution time", cmd_profile}
