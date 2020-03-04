@@ -1,4 +1,5 @@
 #include "strings.h"
+#include "uart.h"
 
 // Defining boolean constants since we don't have stdbool.h
 #define TRUE 1
@@ -54,6 +55,7 @@ int strcmp(const char *s1, const char *s2)
 
 size_t strlcat(char *dst, const char *src, size_t maxsize)
 {
+	uart_putchar('x');
 	int dst_len = strlen(dst);
 	int cp_max = maxsize - dst_len - 1; // max number of appendable characters
 	int cp_amt = strlen(src) < cp_max ? strlen(src) : cp_max; // copy the minimum number of characters need
