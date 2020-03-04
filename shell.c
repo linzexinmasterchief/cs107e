@@ -75,6 +75,7 @@ int cmd_help(int argc, const char *argv[])
 	} else{ // input: "help [cmd]"
 		for(int i = 0; i < NUM_COMMANDS; i++){
 			if(strcmp(commands[i].name, argv[1]) == 0){
+				shell_printf("%s: %s\n", "echo", "does stuff");
 				shell_printf("%s: %s\n", commands[i].name, commands[i].description);
 				return 0;
 			}
